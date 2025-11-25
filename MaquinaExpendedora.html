@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Maquina Expendedora: Pilas (LIFO) y Colas (FIFO)</title>
+    
+    <script src="three.min.js"></script>
+    <script src="OrbitControls.js"></script>
+    <script src="gsap.min.js"></script>
+    <link rel="icon" href="LogoUT.png">
+
+    <style>
+
+        :root {
+            --primary-color: #007bff;
+            --secondary-color: #28a745;
+            --background-color: #f8f9fa;
+            --card-color: white;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            background-color: var(--background-color);
+            color: #333;
+            line-height: 1.6;
+        }
+
+        header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 25px 20px;
+            text-align: center;
+        }
+
+        #contenedor3D {
+            width: 100%;
+            height: 60vh;
+            background-color: #333333;
+            border-bottom: 10px solid #0056b3;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+            position: relative;
+        }
+
+        .controls-info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.6);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 0.9em;
+            z-index: 10;
+        }
+        
+        .error-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 20px 40px;
+            background-color: #ffc107; 
+            color: #333;
+            font-size: 1.5em;
+            font-weight: bold;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            border: 3px solid #dc3545;
+            text-align: center;
+            transition: opacity 0.3s;
+        }
+        .error-message strong {
+            color: #dc3545;
+        }
+        
+
+        .contenido-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .panel-control {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .card {
+            background-color: var(--card-color);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        h2 {
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+            margin-top: 0;
+            color: var(--primary-color);
+        }
+
+        button {
+            background-color: var(--secondary-color);
+            color: white;
+            border: none;
+            padding: 12px;
+            margin: 5px 0;
+            border-radius: 6px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 1em;
+            transition: background-color 0.2s;
+        }
+
+        button:hover {
+            background-color: #1e7e34;
+        }
+
+        .product-selection button {
+            background-color: #5bc0de;
+            width: 32%;
+            margin: 0.5%;
+            padding: 8px;
+            font-size: 0.9em;
+        }
+        .product-selection button[data-selected="true"] {
+             background-color: #007bff;
+             border: 3px solid gold;
+        }
+
+
+        .selected-product {
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+        
+        .pila-item {
+            border: 1px solid #ddd;
+            padding: 8px;
+            margin-bottom: 10px;
+            border-left: 5px solid #008000;
+        }
+
+        .log {
+            max-height: 150px;
+            overflow-y: scroll;
+            padding: 10px;
+            border: 1px solid #ddd;
+            background-color: #fafafa;
+            border-radius: 4px;
+        }
+
+        footer {
+          text-align: center;
+          background: linear-gradient(135deg, var(--azul), var(--morado));
+          color: black;
+          padding: 25px;
+          margin-top: 60px;
+          font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <a href="Proyectos.html" class="boton-regreso">
+        ← Volver al Portafolio
+    </a>
+    <header>
+        <h1>Maquina Expendedora 🛒</h1>
+        <p>El cliente llega feliz a la Maquina Expendedora.</p>
+    </header>
+
+    <div id="contenedor3D">
+        <div class="controls-info">
+            Arrastrar: Rotar | Rueda: Zoom
+        </div>
+        
+        <div id="errorMessage" class="error-message">
+            <strong>¡ATENCIÓN!</strong><br>
+            <span id="errorText"></span>
+        </div>
+    </div>
+
+    <div class="contenido-grid">
+        
+        <div class="panel-control">
+            
+            <div class="card">
+                <h2>1. Control FIFO (Clientes)</h2>
+                <p style="font-weight: bold; color: #cc0000;">FIFO: First In, First Out</p>
+                <button onclick="simularCliente()">➕ Cliente Entra a la Cola (Enqueue)</button>
+                <button onclick="atenderCliente()">🛒 Atender Cliente y Dispensar</button>
+                <div class="pila-item" id="colaClientes"></div>
+            </div>
+
+            <div class="card">
+                <h2>2. Control LIFO (Stock)</h2>
+                <p style="font-weight: bold; color: #008000;">LIFO: Last In, First Out</p>
+                
+                <h3>Slot Seleccionado: <span id="productoSeleccionado" class="selected-product">pilaA</span></h3>
+                
+                <div class="product-selection">
+                    <button onclick="seleccionarPila('pilaA')" data-slot="pilaA">Slot A: <span id="pilaA_name">Refresco</span></button>
+                    <button onclick="seleccionarPila('pilaB')" data-slot="pilaB">Slot B: <span id="pilaB_name">Jugo</span></button>
+                    <button onclick="seleccionarPila('pilaC')" data-slot="pilaC">Slot C: <span id="pilaC_name">Agua</span></button>
+                </div>
+                
+                <button onclick="rellenarStock()">⬆️ Rellenar Stock del Slot Seleccionado</button>
+            </div>
+
+        </div>
+
+        <div class="card">
+            <h2>3. Visualización y Logs</h2>
+            
+            <div style="display: flex; gap: 20px;">
+                <div style="flex: 1;">
+                    <h3>Stock Actual (Pilas LIFO)</h3>
+                    <div id="pilaA_display" class="pila-item"></div>
+                    <div id="pilaB_display" class="pila-item"></div>
+                    <div id="pilaC_display" class="pila-item"></div>
+                </div>
+                <div style="flex: 1;">
+                    <h3>Registro de Acciones (Log)</h3>
+                    <div id="logAcciones" class="log"></div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // ===================================
+        // JAVASCRIPT: Lógica de Simulación y 3D
+        // ===================================
+
+        // -------------------------
+        // 1. Setup de Three.js y GSAP
+        // -------------------------
+        let scene, camera, renderer, controls;
+        let machineGroup, colaGroup, pilaGroups = {}; 
+        let selectedPilaKey = 'pilaA'; 
+        
+        const PRODUCT_HEIGHT = 0.55; 
+        const CUSTOMER_SPACING = 1.5;
+        const STACK_BASE_Y = 1.5; 
+        const MAX_STACK_COUNT = 4;
+
+        let pilas = {
+            pilaA: { name: "Refresco", array: ["Ref1", "Ref2", "Ref3"], color: 0xff4500, positionX: -0.7 },
+            pilaB: { name: "Jugo", array: ["Jugo1", "Jugo2"], color: 0x00aa00, positionX: 0 },
+            pilaC: { name: "Agua", array: ["Agua1", "Agua2", "Agua3", "Agua4"], color: 0x0000ff, positionX: 0.7 }
+        };
+
+        const init3D = () => {
+            const container = document.getElementById('contenedor3D');
+            
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xdddddd);
+            camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 100);
+            
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.shadowMap.enabled = true; 
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            container.appendChild(renderer.domElement);
+
+            camera.position.set(0, 3, 5);
+            camera.lookAt(0, 1.5, 0);
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.target.set(0, 1.5, 0); 
+            controls.update();
+
+            // Luces Ambientales y Direccionales
+            scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5);
+            directionalLight.position.set(5, 10, 5);
+            directionalLight.castShadow = true;
+            directionalLight.shadow.mapSize.width = 1024;
+            directionalLight.shadow.mapSize.height = 1024;
+            directionalLight.shadow.camera.near = 0.5;
+            directionalLight.shadow.camera.far = 30;
+            directionalLight.shadow.camera.left = -5;
+            directionalLight.shadow.camera.right = 5;
+            directionalLight.shadow.camera.top = 5;
+            directionalLight.shadow.camera.bottom = -5;
+            scene.add(directionalLight);
+            
+            // Creación de Modelos Base
+            createMachineModel();
+            createGround();
+
+            // Configurar Grupos Dinámicos
+            colaGroup = new THREE.Group(); 
+            colaGroup.position.set(1.8, 0, -1); 
+            scene.add(colaGroup);
+
+            Object.keys(pilas).forEach(key => {
+                pilaGroups[key] = new THREE.Group();
+                pilaGroups[key].position.set(pilas[key].positionX, STACK_BASE_Y - PRODUCT_HEIGHT, 0.2); 
+                machineGroup.add(pilaGroups[key]);
+            });
+
+            // Inicializar las pilas visualmente
+            Object.keys(pilas).forEach(key => {
+                pilas[key].array.forEach((item, index) => {
+                    const product = createProduct(pilas[key].color);
+                    product.position.y = (index + 1) * PRODUCT_HEIGHT; 
+                    pilaGroups[key].add(product);
+                });
+            });
+
+            const animate = () => {
+                requestAnimationFrame(animate);
+                controls.update();
+                renderer.render(scene, camera);
+            };
+            animate();
+            
+            window.addEventListener('resize', onWindowResize, false);
+        };
+        
+        const onWindowResize = () => {
+            const container = document.getElementById('contenedor3D');
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        };
+
+        window.onload = init3D;
+
+        // -------------------------
+        // CREACIÓN DE MODELOS 3D (Sin Cambios)
+        // -------------------------
+        
+        function createMachineModel() {
+            machineGroup = new THREE.Group();
+            
+            const metallicMaterial = new THREE.MeshPhysicalMaterial({ 
+                color: 0x004c99, 
+                metalness: 0.8, 
+                roughness: 0.3,
+                clearcoat: 0.5, 
+                clearcoatRoughness: 0.1
+            });
+            const bodyGeometry = new THREE.BoxGeometry(2.5, 3.5, 1);
+            const machineBodyMesh = new THREE.Mesh(bodyGeometry, metallicMaterial);
+            machineBodyMesh.position.set(0, 1.75, 0); 
+            machineBodyMesh.castShadow = true;
+            machineBodyMesh.receiveShadow = true;
+            machineGroup.add(machineBodyMesh);
+            
+            const windowMaterial = new THREE.MeshStandardMaterial({ color: 0x99ddff, transparent: true, opacity: 0.2, roughness: 0.1, metalness: 0.5 });
+            const windowGeometry = new THREE.BoxGeometry(2.0, 2.0, 0.06);
+            const windowMesh = new THREE.Mesh(windowGeometry, windowMaterial);
+            windowMesh.position.set(0, 2.5, 0.53); 
+            machineGroup.add(windowMesh);
+
+            const panelGeometry = new THREE.BoxGeometry(2.0, 1.0, 0.06);
+            const panelMaterial = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.4 });
+            const panelMesh = new THREE.Mesh(panelGeometry, panelMaterial);
+            panelMesh.position.set(0, 1.0, 0.53);
+            machineGroup.add(panelMesh);
+
+            const slotGeometry = new THREE.BoxGeometry(0.5, 0.1, 0.07);
+            const slotMaterial = new THREE.MeshStandardMaterial({ color: 0xaaaaaa, metalness: 0.9, roughness: 0.1 });
+            const slotMesh = new THREE.Mesh(slotGeometry, slotMaterial);
+            slotMesh.position.set(0.7, 1.3, 0.54); 
+            machineGroup.add(slotMesh);
+
+            const trayGeometry = new THREE.BoxGeometry(1.8, 0.2, 1.0);
+            const trayMaterial = new THREE.MeshPhysicalMaterial({ color: 0x444444, metalness: 0.9, roughness: 0.2 });
+            const trayMesh = new THREE.Mesh(trayGeometry, trayMaterial);
+            trayMesh.position.set(0, 0.6, 0.4);
+            trayMesh.receiveShadow = true;
+            machineGroup.add(trayMesh);
+
+            const openingGeometry = new THREE.BoxGeometry(1.5, 0.4, 0.05);
+            const openingMaterial = new THREE.MeshStandardMaterial({ color: 0x333333 });
+            const openingMesh = new THREE.Mesh(openingGeometry, openingMaterial);
+            openingMesh.position.set(0, 0.7, 0.85); 
+            machineGroup.add(openingMesh);
+
+            const handleGeometry = new THREE.BoxGeometry(0.08, 0.5, 0.08);
+            const handleMaterial = new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 0.8 });
+            const handleMesh = new THREE.Mesh(handleGeometry, handleMaterial);
+            handleMesh.position.set(-1.28, 1.75, 0.45);
+            machineGroup.add(handleMesh);
+
+
+            scene.add(machineGroup);
+        }
+
+        function createGround() {
+            const tileColor1 = 0xcccccc;
+            const tileColor2 = 0xb0b0b0;
+            const tileSize = 0.5;
+            const groundGroup = new THREE.Group();
+
+            for(let i = -10; i < 10; i++) {
+                for(let j = -10; j < 10; j++) {
+                    const color = (i + j) % 2 === 0 ? tileColor1 : tileColor2;
+                    const tileGeometry = new THREE.BoxGeometry(tileSize, 0.01, tileSize);
+                    const tileMaterial = new THREE.MeshStandardMaterial({ color: color, roughness: 0.7, metalness: 0.1 });
+                    const tileMesh = new THREE.Mesh(tileGeometry, tileMaterial);
+                    tileMesh.position.set(i * tileSize, 0, j * tileSize);
+                    tileMesh.receiveShadow = true;
+                    groundGroup.add(tileMesh);
+                }
+            }
+            scene.add(groundGroup);
+        }
+
+        function createCustomer(id) {
+            const group = new THREE.Group();
+            group.name = id;
+            
+            const bodyMaterial = new THREE.MeshStandardMaterial({ color: 0xcc0000, roughness: 0.6 });
+            const headMaterial = new THREE.MeshStandardMaterial({ color: 0xffe0b2, roughness: 0.4 });
+            const limbMaterial = new THREE.MeshStandardMaterial({ color: 0x880000, roughness: 0.6 });
+
+            const bodyMesh = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.8, 0.3), bodyMaterial);
+            bodyMesh.position.y = 0.9;
+            bodyMesh.name = 'Body';
+            const headMesh = new THREE.Mesh(new THREE.SphereGeometry(0.25, 16, 16), headMaterial);
+            headMesh.position.y = 1.6;
+            
+            const armGeometry = new THREE.BoxGeometry(0.15, 0.6, 0.15);
+            const leftArm = new THREE.Mesh(armGeometry, limbMaterial);
+            leftArm.position.set(-0.35, 1.1, 0);
+            leftArm.name = 'LeftArm';
+            const rightArm = new THREE.Mesh(armGeometry, limbMaterial);
+            rightArm.position.set(0.35, 1.1, 0);
+            rightArm.name = 'RightArm';
+
+            const legGeometry = new THREE.BoxGeometry(0.2, 0.7, 0.2);
+            const leftLeg = new THREE.Mesh(legGeometry, limbMaterial);
+            leftLeg.position.set(-0.15, 0.35, 0);
+            leftLeg.name = 'LeftLeg';
+            const rightLeg = new THREE.Mesh(legGeometry, limbMaterial);
+            rightLeg.position.set(0.15, 0.35, 0);
+            rightLeg.name = 'RightLeg';
+
+            [bodyMesh, headMesh, leftArm, rightArm, leftLeg, rightLeg].forEach(mesh => {
+                mesh.castShadow = true;
+                group.add(mesh);
+            });
+            
+            return group;
+        }
+
+        function createProduct(color) {
+            const group = new THREE.Group();
+            
+            const bodyGeometry = new THREE.CylinderGeometry(0.2, 0.2, PRODUCT_HEIGHT - 0.1, 16);
+            const bodyMaterial = new THREE.MeshStandardMaterial({ color: color, metalness: 0.4, roughness: 0.3 });
+            const bodyMesh = new THREE.Mesh(bodyGeometry, bodyMaterial);
+            
+            const topGeometry = new THREE.CylinderGeometry(0.2, 0.2, 0.05, 16);
+            const topMaterial = new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 0.8, roughness: 0.2 });
+            const topMesh = new THREE.Mesh(topGeometry, topMaterial);
+            topMesh.position.y = (PRODUCT_HEIGHT - 0.1) / 2;
+
+            const baseMesh = topMesh.clone();
+            baseMesh.position.y = -(PRODUCT_HEIGHT - 0.1) / 2;
+            
+            [bodyMesh, topMesh, baseMesh].forEach(mesh => {
+                mesh.castShadow = true;
+                mesh.receiveShadow = true;
+                group.add(mesh);
+            });
+
+            return group;
+        }
+
+
+        // -------------------------
+        // 5. Lógica de Simulación y Animación
+        // -------------------------
+        let cola = [];
+        let contadorClientes = 1;
+        const logAcciones = document.getElementById('logAcciones');
+        const errorMessage = document.getElementById('errorMessage');
+        const errorText = document.getElementById('errorText'); 
+
+        seleccionarPila(selectedPilaKey); 
+        actualizarColaVisual();
+        actualizarPilaVisual();
+        logAccion("🛒 Sistema Maquina Expendedora iniciado.");
+
+        function seleccionarPila(key) {
+            selectedPilaKey = key;
+            document.getElementById('productoSeleccionado').textContent = key;
+            
+            document.querySelectorAll('.product-selection button').forEach(button => {
+                button.setAttribute('data-selected', button.getAttribute('data-slot') === key);
+            });
+
+            Object.keys(pilaGroups).forEach(pKey => {
+                pilaGroups[pKey].traverse(child => {
+                    if (child.material) {
+                        child.material.emissive = new THREE.Color(pKey === key ? 0x222200 : 0x000000);
+                        child.material.emissiveIntensity = pKey === key ? 0.3 : 0;
+                    }
+                });
+            });
+            
+            if (cola.length > 0 && pilas[selectedPilaKey].array.length > 0) {
+                 gsap.to(errorMessage, { opacity: 0, scale: 1, duration: 0.3 });
+                 if (colaGroup.children.length > 0) {
+                     gsap.killTweensOf(colaGroup.children[0].rotation);
+                     colaGroup.children[0].rotation.y = 0;
+                 }
+                 logAccion(`✅ Cliente ${cola[0]} seleccionó el slot ${key} con stock disponible.`);
+            } else if (cola.length > 0 && pilas[selectedPilaKey].array.length === 0) {
+                 logAccion(`🟡 Cliente ${cola[0]} seleccionó el slot ${key}, pero ¡también está vacío!`);
+                 mostrarError3D(`Pila de ${pilas[selectedPilaKey].name} sin stock. Elige otra.`, true);
+            }
+        }
+
+        function simularCliente() {
+            const nuevoCliente = `C${contadorClientes++}`;
+            cola.push(nuevoCliente);
+            logAccion(`🟢 Cliente ${nuevoCliente} se une a la COLA. FIFO.`);
+            animateEnqueue(nuevoCliente);
+            actualizarColaVisual();
+        }
+
+        function atenderCliente() {
+            
+            if (cola.length === 0) {
+                logAccion(`🟡 La COLA de clientes está vacía.`);
+                mostrarError3D("No hay clientes en la cola (FIFO).", false); 
+                return;
+            }
+
+            const clienteAtendido = cola[0];
+            const pilaActual = pilas[selectedPilaKey];
+            
+            logAccion(`⭐ Intentando atender Cliente ${clienteAtendido} con Slot: ${selectedPilaKey}`);
+
+            if (pilaActual.array.length === 0) {
+                logAccion(`🔴 ERROR: Pila ${selectedPilaKey} vacía. Cliente ${clienteAtendido} debe elegir otro producto.`);
+                mostrarError3D(`Pila de ${pilaActual.name} sin stock. Elige otro producto.`, true); 
+                return; 
+            } else {
+                
+                // Detener animación de impaciencia si existía
+                if (colaGroup.children.length > 0) {
+                     gsap.killTweensOf(colaGroup.children[0].rotation);
+                     colaGroup.children[0].rotation.y = 0;
+                }
+                
+                cola.shift(); 
+                
+                animateDequeue(); 
+                
+                setTimeout(() => {
+                    dispensarProducto(selectedPilaKey); 
+                }, 500); 
+            }
+
+            gsap.to(errorMessage, { opacity: 0, scale: 1, duration: 0.3 });
+            actualizarColaVisual();
+        }
+
+        function rellenarStock() {
+            const pilaActual = pilas[selectedPilaKey];
+            if (pilaActual.array.length >= MAX_STACK_COUNT) {
+                logAccion(`🟡 Advertencia: Pila ${selectedPilaKey} llena (${MAX_STACK_COUNT} productos).`);
+                return;
+            }
+            
+            const nuevoProducto = pilaActual.name + (pilaActual.array.length + 1);
+            pilaActual.array.push(nuevoProducto);
+            logAccion(`⬆️ Stock rellenado en ${selectedPilaKey} con "${nuevoProducto}". LIFO.`);
+            animatePush(selectedPilaKey, pilaActual.color);
+            actualizarPilaVisual();
+            
+            if (cola.length > 0 && selectedPilaKey === pilas[selectedPilaKey].key) { 
+                 gsap.to(errorMessage, { opacity: 0, scale: 1, duration: 0.3 });
+                 if (colaGroup.children.length > 0) {
+                     gsap.killTweensOf(colaGroup.children[0].rotation);
+                     colaGroup.children[0].rotation.y = 0;
+                 }
+            }
+        }
+
+        function dispensarProducto(key) {
+            const pilaActual = pilas[key];
+            const productoPop = pilaActual.array.pop(); 
+            
+            logAccion(`📦 Producto "${productoPop}" (${pilaActual.name}) dispensado. LIFO.`);
+            animatePop(key);
+            actualizarPilaVisual();
+        }
+
+        // -------------------------
+        // 5. Animación Ultra Mejorada
+        // -------------------------
+
+        function animateEnqueue(id) {
+            const clienteMesh = createCustomer(id);
+            const zStart = cola.length * CUSTOMER_SPACING + 5;
+            clienteMesh.position.set(0, 0, zStart); 
+            colaGroup.add(clienteMesh);
+            
+            const zTarget = cola.length * CUSTOMER_SPACING;
+            const leftArm = clienteMesh.getObjectByName('LeftArm').rotation;
+            const rightArm = clienteMesh.getObjectByName('RightArm').rotation;
+            const leftLeg = clienteMesh.getObjectByName('LeftLeg').rotation;
+            const rightLeg = clienteMesh.getObjectByName('RightLeg').rotation;
+            
+            gsap.timeline()
+                .to(clienteMesh.position, { 
+                    y: 1.0, 
+                    duration: 0.2, 
+                    ease: "power2.out"
+                })
+                .to(clienteMesh.position, {
+                    y: 0,
+                    z: zTarget, 
+                    duration: 1.5, 
+                    ease: "linear",
+                    onStart: () => {
+                        gsap.to(leftArm, { x: "+=0.3", duration: 0.3, yoyo: true, repeat: -1 });
+                        gsap.to(rightArm, { x: "-=0.3", duration: 0.3, yoyo: true, repeat: -1 });
+                        gsap.to(leftLeg, { x: "-=0.2", duration: 0.3, yoyo: true, repeat: -1 });
+                        gsap.to(rightLeg, { x: "+=0.2", duration: 0.3, yoyo: true, repeat: -1 });
+                    },
+                    onComplete: () => {
+                        gsap.killTweensOf([leftArm, rightArm, leftLeg, rightLeg]);
+                        leftArm.x = 0; rightArm.x = 0; leftLeg.x = 0; rightLeg.x = 0;
+                    }
+                }, 0.2); 
+
+        }
+
+        function animateDequeue() {
+            if (colaGroup.children.length === 0) return;
+            const clienteAtendido = colaGroup.children[0];
+            
+            // Secuencia de animación de salida Ultra Mejorada
+            gsap.timeline()
+                // 1. Acercarse a la máquina para "agarrar" el producto
+                .to(clienteAtendido.position, { 
+                    x: -1.0, 
+                    z: 0.8, 
+                    duration: 0.4, 
+                    ease: "power1.out"
+                }, 0) 
+                
+                // 2. Salto de felicidad con rotación completa
+                .to(clienteAtendido.position, {
+                    y: 1.5, // Salta alto
+                    duration: 0.3,
+                    ease: "power1.out"
+                }, 0.6) 
+                .to(clienteAtendido.rotation, {
+                    y: Math.PI * 2, // Rotación de 360 grados
+                    duration: 0.7,
+                    ease: "power2.out"
+                }, 0.6)
+                .to(clienteAtendido.position, {
+                    y: 0, // Aterriza
+                    duration: 0.4,
+                    ease: "power1.in"
+                }, 0.9) // Aterriza justo después del pico del salto
+
+                // 3. Salida final (Deslizamiento rápido fuera de la escena)
+                .to(clienteAtendido.position, { 
+                    x: -5, z: 5, // Se desliza rápidamente fuera del campo de visión
+                    duration: 0.8, 
+                    ease: "power2.in", 
+                    onComplete: () => {
+                        colaGroup.remove(clienteAtendido);
+                        // Mover el resto de la cola hacia adelante
+                        colaGroup.children.forEach(cliente => {
+                            gsap.to(cliente.position, { z: cliente.position.z - CUSTOMER_SPACING, duration: 0.5 });
+                        });
+                    }
+                }, 1.2); 
+        }
+
+        function mostrarError3D(mensaje, moverCliente) {
+            errorText.innerHTML = mensaje;
+
+            if (moverCliente && colaGroup.children.length > 0) {
+                const clienteFrustrado = colaGroup.children[0];
+                
+                gsap.to(clienteFrustrado.position, { x: -1.0, z: 0.8, duration: 0.5, ease: "power1.out" });
+                
+                // Animación de Impaciencia (Giro de cuerpo)
+                gsap.to(clienteFrustrado.rotation, { 
+                    y: 0.2, 
+                    duration: 0.8, 
+                    ease: "sine.inOut", 
+                    yoyo: true, 
+                    repeat: -1 
+                });
+            }
+
+            gsap.to(errorMessage, { opacity: 1, scale: 1.1, duration: 0.3,
+                onComplete: () => {
+                     gsap.to(errorMessage, { scale: 1, duration: 0.3, delay: 0.5 });
+                }
+            });
+        }
+
+        function animatePush(key, color) {
+            const newProductMesh = createProduct(color);
+            const group = pilaGroups[key];
+            
+            newProductMesh.position.set(0, 4, 0); 
+            group.add(newProductMesh);
+            
+            const yTarget = pilas[key].array.length * PRODUCT_HEIGHT; 
+            gsap.to(newProductMesh.position, { y: yTarget, duration: 0.8, ease: "bounce.out" });
+        }
+
+        function animatePop(key) {
+            const group = pilaGroups[key];
+            if (group.children.length === 0) return;
+            
+            const productoDispensar = group.children[group.children.length - 1]; 
+            
+            gsap.timeline()
+                .to(productoDispensar.position, { 
+                    y: -0.2, 
+                    z: 0.7, 
+                    duration: 0.3, 
+                    ease: "power1.in"
+                }) 
+                .to(productoDispensar.position, { 
+                    x: -pilas[key].positionX + -1.0, 
+                    y: 0.9, 
+                    z: 0.8,  
+                    duration: 0.5, 
+                    ease: "power1.out",
+                    delay: 0.1, 
+                    onComplete: () => {
+                        group.remove(productoDispensar); 
+                    }
+                }, 0.3); 
+
+        }
+        
+        // -------------------------
+        // 6. Actualización Visual HTML
+        // -------------------------
+        
+        function actualizarColaVisual() {
+            const colaDisplay = document.getElementById('colaClientes');
+            colaDisplay.innerHTML = `Clientes en cola (${cola.length}): Inicio (Sale) → ` + 
+                cola.map((c, index) => `<span class="elemento cliente" style="${index === 0 ? 'border: 2px dashed red;' : ''}">${c}</span>`).join(' ') +
+                ' ← Final (Entra)';
+        }
+
+        function actualizarPilaVisual() {
+            Object.keys(pilas).forEach(key => {
+                const pilaActual = pilas[key];
+                const display = document.getElementById(`${key}_display`);
+
+                display.innerHTML = `Slot ${key.toUpperCase().slice(-1)} (${pilaActual.name}) - Stock: ${pilaActual.array.length}: Fondo → ` + 
+                    pilaActual.array.map(p => `<span class="elemento producto">${p}</span>`).join(' ') +
+                    ' ← Tope (LIFO)';
+            });
+        }
+
+        function logAccion(mensaje) {
+            const p = document.createElement('p');
+            p.textContent = `[${new Date().toLocaleTimeString()}] ${mensaje}`;
+            logAcciones.prepend(p);
+        }
+    </script>
+</body>
+<footer>
+    Julian Jimenez Villaseñor DSM-42
+</footer>
+</html>

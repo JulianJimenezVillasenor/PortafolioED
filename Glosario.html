@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cuadernillo: Glosario de Estructura de Datos</title>
+    <link rel="icon" href="LogoUT.png">
+    <style>
+        /* ==================================== */
+        /* VARIABLES CSS (NUEVO ESQUEMA DE COLOR) */
+        /* ==================================== */
+        :root {
+            --color-primary-dark: #1A237E;   /* Deep Indigo/Navy (Para texto y fondo principal) */
+            --color-secondary: #00BCD4;      /* Vibrant Cyan/Teal (Accento Dinámico) */
+            --color-accent: #FF9800;         /* Orange/Amber (Resaltados y Tips) */
+            --color-paper: #FAFAFA;          /* Off-White/Light Gray Paper (Fondo de página) */
+            --color-paper-light: #ECEFF1;    /* Light Grayish Blue for Cards */
+            --color-text-dark: #263238;      /* Dark Slate Gray for Cuerpo de Texto */
+            --color-text-light: #78909C;     /* Muted Gray for secondary text */
+            
+            --book-width: 450px;
+            --book-height: 600px;
+            --spine-width: 10px;
+            --turn-duration: 0.85s; 
+            --cover-duration: 1.3s; 
+            --snap-ease: cubic-bezier(0.7, -0.4, 0.4, 1.4); 
+        }
+
+        /* ==================================== */
+        /* ESTILOS CSS DEL LIBRO (BASE Y 3D) */
+        /* ==================================== */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background-color: #e0e0e0;
+            margin: 0;
+            padding: 20px;
+        }
+
+        /* Contenedor principal */
+        .book-container {
+            width: var(--book-width); 
+            height: var(--book-height); 
+            position: relative;
+            margin-bottom: 30px;
+            box-shadow: 
+                0 8px 10px rgba(0, 0, 0, 0.3), 
+                8px 8px 25px rgba(0, 0, 0, 0.8), 
+                inset 0 0 50px rgba(0, 0, 0, 0.1); 
+            border-radius: 5px;
+            overflow: hidden; 
+            transition: width 0.9s cubic-bezier(0.75, 0.05, 0.5, 1.0); 
+            perspective: 1500px; 
+            transform-style: preserve-3d;
+            perspective-origin: center center;
+        }
+
+        /* Estado Abierto */
+        .book-container.is-open {
+            width: calc(var(--book-width) * 2 + var(--spine-width)); 
+            box-shadow: 
+                0 5px 15px rgba(0, 0, 0, 0.4), 
+                0 0 0 rgba(0, 0, 0, 0); 
+        }
+
+        .spreads-wrapper {
+            width: calc(var(--book-width) * 2);
+            height: 100%;
+            position: absolute;
+            left: 0;
+            top: 0;
+            transform: translateX(calc(var(--spine-width) / -2)); 
+        }
+
+        .spread {
+            display: flex; 
+            position: absolute;
+            width: 100%; 
+            height: 100%;
+            opacity: 0;
+            pointer-events: none; 
+            z-index: 1;
+            transform-style: preserve-3d;
+            transition: opacity 0.5s ease-in-out;
+        }
+
+        .spread.active {
+            opacity: 1;
+            pointer-events: all;
+            z-index: 10;
+        }
+
+        .page {
+            width: var(--book-width); 
+            height: 100%;
+            background: var(--color-paper); 
+            /* Se ajusta el padding superior a 50px para el número de página */
+            padding: 50px 25px 25px 25px; 
+            box-sizing: border-box;
+            overflow-y: auto; 
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: center; 
+            position: relative;
+            transform-style: preserve-3d;
+            backface-visibility: hidden; 
+            transition: transform var(--turn-duration) var(--snap-ease), 
+                        box-shadow var(--turn-duration) var(--snap-ease);
+        }
+        
+        /* Contenido de página mejorado para distribución */
+        .page-content {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 20px; 
+            margin-top: 15px;
+        }
+        
+        /* ESTILO CLAVE: Bloque de concepto (Tarjeta con acento) */
+        .concept-block {
+            padding: 15px;
+            background-color: var(--color-paper-light); 
+            border: 1px solid #CFD8DC;
+            border-radius: 8px; 
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); 
+            position: relative;
+            overflow: hidden;
+            border-left: 6px solid var(--color-secondary); 
+        }
+        
+        .concept-block:last-child {
+            margin-bottom: 0;
+        }
+
+        /* Lomo */
+        .spine {
+            display: none;
+            width: var(--spine-width); 
+            height: 100%;
+            position: absolute;
+            left: var(--book-width); 
+            z-index: 50; 
+            background: var(--color-primary-dark); 
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.8);
+        }
+
+        .book-container.is-open .spine {
+            display: block;
+        }
+        
+        /* Efectos de realismo y giros 3D (Mantenidos) */
+        .spread.active .page:first-child::before {
+            content: '';
+            position: absolute;
+            top: 0; bottom: 0; left: 0;
+            width: 5px; 
+            background: repeating-linear-gradient(to right, #eee, #fff 1px, #eee 3px);
+            z-index: 0;
+            box-shadow: inset 1px 0 5px rgba(0, 0, 0, 0.1);
+        }
+        .spread.active .page:last-child::after {
+            content: '';
+            position: absolute;
+            top: 0; bottom: 0; right: 0;
+            width: 5px;
+            background: repeating-linear-gradient(to right, #eee, #fff 1px, #eee 3px);
+            z-index: 0;
+            box-shadow: inset -1px 0 5px rgba(0, 0, 0, 0.1);
+        }
+        .spread.active .page * { z-index: 1; } 
+        .page:first-child:not(.cover-turn-right) { box-shadow: inset -15px 0 25px -10px rgba(0, 0, 0, 0.8); border-radius: 5px 0 0 5px; }
+        .page:last-child:not(.final-cover-turn-right) { box-shadow: inset 15px 0 25px -10px rgba(0, 0, 0, 0.8); border-radius: 0 5px 5px 0; }
+        .spread.active .page:first-child { border-right: 1px solid #ddd; box-shadow: inset -10px 0 15px -5px rgba(0, 0, 0, 0.35) !important; }
+        .spread.active .page:last-child { box-shadow: inset 10px 0 15px -5px rgba(0, 0, 0, 0.35) !important; }
+        .page.turn-right { transform-origin: left center; transform: rotateY(-179deg) translateZ(60px) rotateX(2deg); box-shadow: -100px 0 150px rgba(0, 0, 0, 1.0), inset 40px 0 60px rgba(0, 0, 0, 0.95); background: linear-gradient(to left, #d8d8d8 0%, var(--color-paper) 5%); z-index: 100; }
+        .page.turn-left { transform-origin: right center; transform: rotateY(179deg) translateZ(60px) rotateX(-2deg); box-shadow: 100px 0 150px rgba(0, 0, 0, 1.0), inset -40px 0 60px rgba(0, 0, 0, 0.95); background: linear-gradient(to right, #d8d8d8 0%, var(--color-paper) 5%); z-index: 100; }
+        .page.cover-turn-right { transform-origin: left center; transform: rotateY(-180deg) translateZ(120px) scale(1.0) rotateZ(0.5deg); transition: transform var(--cover-duration) var(--snap-ease); z-index: 200; box-shadow: -40px 0 80px rgba(0, 0, 0, 1.0); }
+        .page.final-cover-turn-right { transform-origin: right center; transform: rotateY(-180deg) translateZ(120px) scale(1.0) rotateZ(-0.5deg); transition: transform var(--cover-duration) var(--snap-ease); z-index: 200; box-shadow: 40px 0 80px rgba(0, 0, 0, 1.0); }
+
+
+        /* ESTILOS DE PORTADA */
+        .page.front-cover { 
+            background: linear-gradient(145deg, var(--color-primary-dark), #1565C0); 
+            color: white; 
+            justify-content: flex-start; 
+            align-items: center; 
+            text-align: center; 
+            /* Ajuste el padding para la cubierta */
+            padding: 50px 25px;
+        }
+        
+        #front-content {
+             width: 100%;
+             height: 100%;
+             display: flex;
+             flex-direction: column;
+             align-items: center; 
+             justify-content: space-evenly; 
+        }
+
+        /* ESTILOS DE CONTRAPORTADA */
+        .closed-back-view {
+            background: linear-gradient(145deg, #1565C0, var(--color-primary-dark)); 
+            color: rgba(255, 255, 255, 0.8); 
+            transition: background 0.5s, color 0.5s;
+        }
+        
+        #back-content {
+            display: none;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            width: 100%;
+            height: 100%;
+            text-align: center; 
+            padding: 30px;
+            box-sizing: border-box;
+        }
+        
+        #back-content p {
+            font-size: 1em;
+            line-height: 1.6;
+            margin-top: 15px;
+            text-align: justify;
+            color: #B0BEC5; 
+        }
+        
+        #back-content ul {
+            color: #B0BEC5; 
+        }
+
+        /* ==================================================== */
+        /* ESTILOS DE CONTENIDO Y TIPOGRAFÍA                    */
+        /* ==================================================== */
+        h1 { 
+            color: var(--color-accent); 
+            font-size: 3em; 
+            font-weight: 900; 
+            text-shadow: 0 0 15px rgba(255, 152, 0, 0.7); 
+            margin-bottom: 5px;
+        }
+        
+        h2 { 
+            color: var(--color-primary-dark); 
+            border-bottom: 2px solid var(--color-secondary); 
+            padding-bottom: 8px; 
+            margin-top: 0; 
+            font-size: 1.7em; 
+            width: 100%; 
+            text-align: center;
+        }
+        
+        dt { 
+            font-weight: 700; 
+            color: var(--color-primary-dark); 
+            font-size: 1.2em; 
+            margin-top: 5px;
+            padding-bottom: 2px;
+            border-bottom: 1px dashed #B0BEC5; 
+        }
+        
+        dd { 
+            margin-bottom: 10px; 
+            font-size: 1.05em;
+            line-height: 1.6; 
+            color: var(--color-text-dark); 
+            text-align: justify; 
+        }
+        
+        .exam-tip { 
+            color: #D32F2F; 
+            font-style: italic; 
+            font-weight: bold; 
+            font-size: 1em;
+            background-color: #FFEBEE; 
+            padding: 2px 5px;
+            border-radius: 3px;
+        }
+        
+        /* Estilo para imágenes internas */
+        .concept-img { 
+            max-width: 100%; 
+            height: auto; 
+            min-height: 50px; 
+            margin: 10px 0; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            width: 100%; 
+            flex-shrink: 0; 
+        }
+        .concept-img img {
+            max-width: 90%; 
+            max-height: 120px; 
+            height: auto;
+            border: 2px solid var(--color-secondary); 
+            background-color: #fff;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            padding: 8px;
+        }
+
+        /* Elementos de control y navegación (Botones Cian) */
+        .navigation { display: flex; gap: 20px; }
+        .nav-btn { 
+            padding: 12px 30px; 
+            font-size: 17px; 
+            cursor: pointer; 
+            border: none; 
+            border-radius: 50px; 
+            background-color: var(--color-secondary); 
+            color: white; 
+            transition: background-color 0.3s, transform 0.1s; 
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+        }
+        .nav-btn:hover:not(:disabled) { 
+            background-color: #00838F; 
+            transform: translateY(-2px);
+            box-shadow: 0 6px 10px rgba(0, 0, 0, 0.25);
+        }
+        .nav-btn:disabled { 
+            background-color: #CFD8DC; 
+            cursor: not-allowed; 
+            color: #90A4AE;
+            box-shadow: none;
+        }
+        
+        /* ==================================================== */
+        /* INDICADORES DE PÁGINA (COLOCADOS EN LAS ESQUINAS SUPERIORES) */
+        /* ==================================================== */
+        .page-indicator { 
+            position: absolute; 
+            /* CAMBIO CLAVE: Posicionado arriba */
+            top: 15px; 
+            bottom: auto; 
+            right: 25px; 
+            font-size: 0.9em; 
+            color: var(--color-primary-dark); 
+            font-weight: 600; 
+            letter-spacing: 0.5px;
+            /* Se establece la línea divisoria superior */
+            border-bottom: 1px solid #CFD8DC; 
+            border-top: none; /* Eliminar la línea inferior */
+            padding-bottom: 5px; 
+            width: 70px; 
+            text-align: right;
+            z-index: 10; 
+        }
+        .page-indicator.left { 
+            left: 25px; 
+            right: auto; 
+            text-align: left;
+        }
+        /* Mantenemos el estilo de cubierta centrado y sin línea, movido a la parte inferior de la cubierta */
+        .page-indicator.cover { 
+            color: rgba(255, 255, 255, 0.7); 
+            right: 50%; 
+            transform: translateX(50%); 
+            bottom: 30px; 
+            top: auto; /* Se queda abajo en la portada */
+            border-bottom: none; 
+            padding-bottom: 0;
+            font-size: 1em;
+            width: auto;
+            z-index: 1; 
+        }
+
+        .data-table { width: 100%; border-collapse: collapse; font-size: 0.9em; margin-top: 15px; }
+        .data-table th, .data-table td { border: 1px solid #CFD8DC; padding: 10px; text-align: left; }
+        .data-table th { background-color: var(--color-paper-light); color: var(--color-primary-dark); }
+    </style>
+</head>
+<body>
+    <a href="Proyectos.html" class="boton-regreso">
+        ← Volver al Portafolio
+    </a>
+    <div class="book-container">
+        <div class="spine"></div>
+        
+        <section id="cover-view" class="page front-cover">
+            <div id="front-content" style="display: block;">
+                <div class="concept-img cover-img">
+                    <img src="LogoUT.png" alt="Portada de libro de Estructura de Datos con fondo azul oscuro y diseño tecnológico."/>
+                </div>
+
+                <h1>ESTRUCTURA DE DATOS</h1>
+                <h2 style="color: #ffffff; border-bottom: none; font-weight: 300; font-size: 1.2em; margin-top: 0;">Glosario de Conceptos Fundamentales</h2>
+                <p style="font-size: 0.9em; color: rgba(255, 255, 255, 0.7);">Haz clic en "Abrir Libro" para comenzar el repaso</p>
+                
+            </div>
+
+            <div id="back-content" style="display: none;">
+                <h2 style="color: var(--color-accent); border-bottom: 2px solid var(--color-accent); padding-bottom: 10px;">¡Domina los Fundamentos!</h2>
+                
+                <p>Este glosario interactivo está basado en las Clases de Septiembre y consolida las definiciones clave de Estructura de Datos incluyendo:</p>
+
+                <ul style="list-style-type: disc; padding-left: 25px; margin-top: 10px; color: #ddd; text-align: left;">
+                    <li>Diferencias entre estructuras Estáticas y Dinámicas.</li>
+                    <li>Uso del Iterador (variable indexada e inteligente) y el Apuntador (`*`, que guarda direcciones en memoria).</li>
+                    <li>Concepto y aplicaciones de la Recursividad (la función se llama a sí misma).</li>
+                    <li>Las propiedades de los arreglos: Finita, Homogénea y Ordenada.</li>
+                </ul>
+                <div style="margin-top: 30px; font-size: 0.8em; color: rgba(255, 255, 255, 0.5);">
+                    <p style="text-align: center; font-style: italic;">Hecho con JavaScript 🤓</p>
+                </div>
+                <div class="page-indicator cover">Contraportada</div>
+            </div>
+        </section>
+
+        <div class="spreads-wrapper" style="display: none;">
+            
+            <div class="spread active" data-spread-num="0">
+                <section class="page" data-page-num="1">
+                    <h2>Fundamentos y Datos Primitivos</h2>
+                    <div class="page-content">
+                        <div class="concept-block">
+                            <dl>
+                                <dt>Estructura de Datos</dt>
+                                <dd>Es una colección de datos organizados de una manera específica (lógica y física), junto con el conjunto de operaciones que se pueden realizar sobre ellos (ej. inserción, eliminación, búsqueda).</dd>
+                            </dl>
+                            <div class="concept-img">
+                                <img src="Estructura_Datos.webp" alt="Diagrama de cajas y flechas que representan la organización de datos en un sistema."/>
+                            </div>
+                        </div>
+                        <div class="concept-block">
+                            <dl>
+                                <dt>Tipos Primitivos</dt>
+                                <dd>Son los tipos de datos básicos y atómicos (`int`, `char`, `float`, etc.) que el lenguaje maneja de forma nativa. Ocupan una cantidad de memoria fija y predefinida.</dd>
+                            </dl>
+                            <div class="concept-img">
+                                <img src="Tipos_Primitivos.webp" alt="Ilustración de bits y bytes en celdas de memoria, representando tipos primitivos."/>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="page-indicator left">Página 1</div>
+                </section>
+                <section class="page" data-page-num="2">
+                    <h2>Abstracción y Lenguaje</h2>
+                    <div class="page-content">
+                        <div class="concept-block">
+                            <dl>
+                                <dt>Tipo de Dato Abstracto (TDA)</dt>
+                                <dd>Es la especificación de una estructura de datos que se centra en qué hace (interfaz de operaciones) y oculta los detalles de cómo está implementado internamente (abstracción).</dd>
+                            </dl>
+                            <div class="concept-img">
+                                <img src="TDA.png" alt="Diagrama de una caja negra con botones de interfaz (push, pop) que ocultan su interior."/>
+                            </div>
+                        </div>
+                        <div class="concept-block">
+                            <dl>
+                                <dt>Semántica y Sintaxis</dt>
+                                <dd>La Sintaxis son las reglas de escritura del código (gramática). La Semántica es el significado, propósito o efecto que tendrá el código una vez ejecutado (el sentido lógico).</dd>
+                            </dl>
+                            <div class="concept-img">
+                                <img src="Sintaxis_Semantica.png" alt="Representación de un código fuente bien formateado (Sintaxis) y un resultado lógico (Semántica)."/>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="page-indicator">Página 2</div>
+                </section>
+            </div>
+            
+            <div class="spread" data-spread-num="1">
+                <section class="page" data-page-num="3">
+                    <h2>Clasificación: Estática vs Dinámica</h2>
+                    <div class="page-content">
+                        <div class="concept-block">
+                            <dl>
+                                <dt>Estructura Estática</dt>
+                                <dd>Aquella cuyo tamaño en memoria es fijo y no puede cambiar durante la ejecución del programa. La memoria se asigna durante la compilación. Ej. Arreglos.</dd>
+                            </dl>
+                            <div class="concept-img">
+                                <img src="Estructura_Estatica.png" alt="Ilustración de un bloque de memoria con celdas de tamaño fijo e inalterable."/>
+                            </div>
+                        </div>
+                        <div class="concept-block">
+                            <dl>
+                                <dt>Estructura Dinámica</dt>
+                                <dd>Aquella cuyo tamaño puede variar a medida que el programa se ejecuta. Utiliza apuntadores para gestionar la memoria en el heap y expandirse o contraerse. Ej. Listas Enlazadas, Árboles.</dd>
+                            </dl>
+                            <div class="concept-img">
+                                <img src="Estructura_Dinamica.png" alt="Diagrama de nodos conectados por flechas, representando una estructura que puede crecer."/>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="page-indicator left">Página 3</div>
+                </section>
+                <section class="page" data-page-num="4">
+                    <h2>TDA Lineales</h2>
+                    <div class="page-content">
+                        <div class="concept-block">
+                            <dl>
+                                <dt>TDA Pila (Stack)</dt>
+                                <dd>Estructura lineal LIFO (Last In, First Out - El último en entrar es el primero en salir). Opera solo por un extremo (cima).</dd>
+                            </dl>
+                            <div class="concept-img">
+                                <img src="Pila.jpg" alt="Gráfico de una pila de platos que representa el acceso LIFO."/>
+                            </div>
+                        </div>
+                        <div class="concept-block">
+                            <dl>
+                                <dt>TDA Cola (Queue)</dt>
+                                <dd>Estructura lineal FIFO (First In, First Out - El primero en entrar es el primero en salir). Opera por el frente para eliminar y por el final para insertar.</dd>
+                            </dl>
+                            <div class="concept-img">
+                                <img src="Cola.jpg" alt="Gráfico de personas en una cola que representa el acceso FIFO."/>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="page-indicator">Página 4</div>
+                </section>
+            </div>
+            
+            <div class="spread" data-spread-num="2">
+                <section class="page" data-page-num="5">
+                    <h2>Apuntadores e Iteradores</h2>
+                    <div class="page-content">
+                        <div class="concept-block">
+                            <dl>
+                                <dt>Apuntador / Puntero</dt>
+                                <dd>Es una variable cuyo valor es una dirección de memoria. Permite manipular datos indirectamente y es la base de las estructuras dinámicas (ej. el símbolo `*`).</dd>
+                            </dl>
+                            <div class="concept-img">
+                                <img src="Puntero.jpg" alt="Diagrama de una flecha (puntero) que va de una variable a una celda de memoria."/>
+                            </div>
+                        </div>
+                        <div class="concept-block">
+                            <dl>
+                                <dt>Iterador</dt>
+                                <dd>Es un objeto que actúa como un cursor inteligente para recorrer y acceder a los elementos de una colección, siguiendo un orden preestablecido sin exponer la estructura interna.</dd>
+                            </dl>
+                            <div class="concept-img">
+                                <img src="Iterador.png" alt="Ilustración de un cursor avanzando a través de una lista de elementos."/>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="page-indicator left">Página 5</div>
+                </section>
+                <section class="page" data-page-num="6">
+                    <h2>Arreglos y Listas Enlazadas</h2>
+                    <div class="page-content">
+                        <div class="concept-block">
+                            <dl>
+                                <dt>Arreglos (Vectores: Unidensional)</dt>
+                                <dd>Estructura estática (tamaño fijo) que almacena datos homogéneos en posiciones de memoria contiguas. Se accede por índice. Es Finita (Tiene un fin), Homogénea (Mismo tipo de dato), y Ordenada (Tiene un orden definido).</dd>
+                            </dl>
+                            <div class="concept-img">
+                                <img src="Arreglo.png" alt="Visualización de un vector con índices 0 a N."/>
+                            </div>
+                        </div>
+                        <div class="concept-block">
+                            <dl>
+                                <dt>Lista Enlazada</dt>
+                                <dd>Estructura dinámica compuesta de nodos, donde cada nodo contiene un dato y un apuntador al siguiente. No requiere memoria contigua.</dd>
+                            </dl>
+                            <div class="concept-img">
+                                <img src="Lista.jpg" alt="Ilustración de tres cajas conectadas por flechas, representando una lista enlazada."/>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="page-indicator">Página 6</div>
+                </section>
+            </div>
+            
+            <div class="spread" data-spread-num="3">
+                <section class="page" data-page-num="7">
+                    <h2>Estructuras No Lineales</h2>
+                    <div class="page-content">
+                        <div class="concept-block">
+                            <dl>
+                                <dt>Árboles (Búsqueda Iterativa)</dt>
+                                <dd>Estructura jerárquica con un nodo raíz. La búsqueda iterativa se realiza con un ciclo `while` y una Pila o Cola explícita, ideal para grandes conjuntos de datos.</dd>
+                            </dl>
+                            <div class="concept-img">
+                                <img src="Arbol.png" alt="Diagrama de un árbol binario con nodos y recorrido iterativo."/>
+                            </div>
+                        </div>
+                        <div class="concept-block">
+                            <dl>
+                                <dt>Grafos (BFS Iterativo)</dt>
+                                <dd>Conjunto de vértices (nodos) y aristas (conexiones). El BFS (Búsqueda en Amplitud) iterativo usa una Cola para explorar el grafo nivel por nivel.</dd>
+                            </dl>
+                            <div class="concept-img">
+                                <img src="Grafo.jpg" alt="Red de nodos conectados con flechas que representan el recorrido en amplitud (BFS)."/>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="page-indicator left">Página 7</div>
+                </section>
+                <section class="page" data-page-num="8">
+                    <h2>Matrices y POO</h2>
+                    <div class="page-content">
+                        <div class="concept-block">
+                            <dl>
+                                <dt>Índice / Subíndice</dt>
+                                <dd>El índice es un número que identifica la posición de un elemento en una colección o arreglo de una sola dimensión (un vector).
+                                 El subíndice es el término que se utiliza cuando un elemento se define por más de una posición. </dd>
+                            </dl>
+                            <div class="concept-img">
+                                <img src="Indice_Subindice.png" alt="Representación de un arreglo unidimensional con números 0, 1, 2, etc., indicando las posiciones."/>
+                            </div>
+                        </div>
+                        <div class="concept-block">
+                            <dl>
+                                <dt>Matriz</dt>
+                                <dd>Un arreglo Bidimensional que organiza los datos en filas y columnas (o más). Requiere múltiples subíndices para acceder a cada elemento (ej. `[fila][columna]`).</dd>
+                            </dl>
+                            <div class="concept-img">
+                                <img src="Matriz.png" alt="Gráfico de una cuadrícula o tabla con coordenadas (fila, columna)."/>
+                            </div>
+                        </div>
+                        <div class="concept-block">
+                            <dl>
+                                <dt>Constructor</dt>
+                                <dd>Método especial de una clase que se invoca automáticamente al crear un objeto (instancia). Su propósito es inicializar los atributos del nuevo objeto.</dd>
+                            </dl>
+                            <div class="concept-img">
+                                <img src="Constructor.png" alt="Diagrama de un constructor tomando parámetros e inicializando un objeto de una clase."/>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="page-indicator">Página 8</div>
+                </section>
+            </div>
+
+            <div class="spread" data-spread-num="4">
+                <section class="page" data-page-num="9">
+                    <h2>Tipos de Recursividad</h2>
+                    <div class="page-content">
+                        <div class="concept-block">
+                            <dl>
+                                <dt>Recursividad (General)</dt>
+                                <dd>Técnica donde una función se llama a sí misma para resolver un problema. Requiere un caso base (condición de parada) para evitar el bucle infinito.</dd>
+                            </dl>
+                            <div class="concept-img">
+                                <img src="Recursividad.jpg" alt="Ilustración conceptual de un bucle de función que se llama a sí misma."/>
+                            </div>
+                        </div>
+                        <div class="concept-block">
+                            <dl>
+                                <dt>Recursividad Directa</dt>
+                                <dd>La función se llama explícitamente a sí misma dentro de su propio cuerpo de código. Es el tipo más común y directo de recursividad.</dd>
+                            </dl>
+                            <div class="concept-img">
+                                <img src="Recursividad_Directa.png" alt="Diagrama de una función 'A' que tiene una flecha de llamada apuntando hacia sí misma."/>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="page-indicator left">Página 9</div>
+                </section>
+                <section class="page" data-page-num="10">
+                    <h2>Tipos de Recursividad</h2>
+                    <div class="page-content">
+                        <div class="concept-block">
+                            <dl>
+                                <dt>Recursividad Indirecta</dt>
+                                <dd>Ocurre cuando la función `A` llama a la función `B`, y la función `B` llama de vuelta a la función `A`, completando un ciclo de llamada entre dos o más funciones.</dd>
+                            </dl>
+                            <div class="concept-img">
+                                <img src="Recursividad_Indirecta.png" alt="Diagrama de funciones A y B llamándose mutuamente en un ciclo."/>
+                            </div>
+                        </div>
+                        
+                    </div>
+                    <div class="page-indicator">Página 10</div>
+                </section>
+            </div>
+            
+            <div class="spread" data-spread-num="5">
+                <section class="page" data-page-num="11">
+                    <h2> Proximos Conceptos</h2>
+                    <div class="page-content" style="flex-grow: 1;">
+                         <p style="margin-top: 10px; font-style: italic; color: var(--color-text-light);"> 
+                            ....
+                         </p>
+                         <p style="margin-top: 30px; border: 1px dashed #B0BEC5; min-height: 70%; padding: 15px; background-color: #F5F7F8; border-radius: 6px;"></p>
+                    </div>
+                    <div class="page-indicator left">Página 11</div>
+                </section>
+                <section class="page back-cover" data-page-num="12">
+                    <h1>Fin del Repaso</h1>
+                    <p>¡Has revisado todos los conceptos fundamentales!</p>
+                    <p style="margin-top: 30px;">¡Presiona "Cerrar Libro" para cerrar!</p>
+                    <div class="page-indicator cover">Contraportada</div>
+                </section>
+            </div>
+        </div>
+        
+    </div>
+
+    <div class="navigation">
+        <button id="prev-btn" class="nav-btn">⬅️ Anterior</button>
+        <button id="next-btn" class="nav-btn">Siguiente ➡️</button>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const bookContainer = document.querySelector('.book-container');
+            const coverView = document.getElementById('cover-view');
+            const spreadsWrapper = document.querySelector('.spreads-wrapper');
+            const spreads = document.querySelectorAll('.spread');
+            const frontContent = document.getElementById('front-content');
+            const backContent = document.getElementById('back-content');
+            
+            const totalSpreads = spreads.length;
+            let currentSpreadIndex = 0; 
+            let isBookOpen = false;
+            
+            const pageTurnDuration = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--turn-duration')) * 1000;
+            const coverTurnDuration = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--cover-duration')) * 1000;
+
+            const nextBtn = document.getElementById('next-btn');
+            const prevBtn = document.getElementById('prev-btn');
+            
+            // Inicialización
+            spreadsWrapper.style.display = 'none';
+            spreads.forEach(s => s.classList.remove('active'));
+            updateButtons();
+
+            function updateCoverContent(view) {
+                if (view === 'front') {
+                    coverView.classList.remove('closed-back-view');
+                    frontContent.style.display = 'flex'; 
+                    backContent.style.display = 'none';
+                } else if (view === 'back') {
+                    coverView.classList.add('closed-back-view');
+                    frontContent.style.display = 'none';
+                    backContent.style.display = 'flex'; 
+                }
+            }
+
+            function turnPageAnimation(newSpreadIdx, direction) {
+                nextBtn.disabled = true;
+                prevBtn.disabled = true;
+
+                const oldSpread = spreads[currentSpreadIndex];
+                const newSpread = spreads[newSpreadIdx];
+
+                const pageToAnimate = direction === 'next' ? oldSpread.children[1] : oldSpread.children[0];
+                
+                oldSpread.style.zIndex = 10; 
+                newSpread.style.zIndex = 5; 
+                newSpread.style.opacity = 1; 
+                newSpread.classList.add('active'); 
+
+                pageToAnimate.classList.add(direction === 'next' ? 'turn-right' : 'turn-left');
+                
+                setTimeout(() => {
+                    pageToAnimate.classList.remove('turn-right', 'turn-left');
+                    pageToAnimate.style.transform = '';
+                    pageToAnimate.style.background = ''; 
+
+                    oldSpread.classList.remove('active');
+                    oldSpread.style.opacity = 0;
+                    oldSpread.style.zIndex = 1;
+
+                    currentSpreadIndex = newSpreadIdx;
+                    updateButtons();
+                    
+                }, pageTurnDuration * 0.95); 
+            }
+            
+            function openBook() {
+                nextBtn.disabled = true;
+                prevBtn.disabled = true;
+
+                updateCoverContent('front'); 
+                
+                coverView.classList.add('cover-turn-right');
+                bookContainer.classList.add('is-open');
+
+                setTimeout(() => {
+                    coverView.style.display = 'none';
+                    coverView.classList.remove('cover-turn-right');
+                    coverView.style.transform = ''; 
+
+                    spreadsWrapper.style.display = 'flex'; 
+                    spreads[0].classList.add('active');
+                    currentSpreadIndex = 0;
+                    isBookOpen = true;
+                    updateButtons();
+                }, coverTurnDuration); 
+            }
+            
+            function closeBook() {
+                nextBtn.disabled = true;
+                prevBtn.disabled = true;
+                
+                const lastSpread = spreads[totalSpreads - 1]; 
+                const backCoverPage = lastSpread.children[1]; 
+                
+                backCoverPage.classList.add('final-cover-turn-right');
+                
+                setTimeout(() => {
+                    bookContainer.classList.remove('is-open');
+                    
+                    setTimeout(() => {
+                        spreadsWrapper.style.display = 'none';
+                        lastSpread.classList.remove('active');
+                        backCoverPage.classList.remove('final-cover-turn-right');
+                        backCoverPage.style.transform = '';
+
+                        coverView.style.display = 'flex';
+                        updateCoverContent('back');
+                        
+                        isBookOpen = false;
+                        currentSpreadIndex = 0;
+                        updateButtons();
+                    }, 1000); 
+
+                }, 500); 
+            }
+
+            // Manejadores de eventos
+            nextBtn.addEventListener('click', () => {
+                if (nextBtn.disabled) return;
+                
+                if (!isBookOpen) {
+                    openBook();
+                } else if (currentSpreadIndex < totalSpreads - 1) {
+                    turnPageAnimation(currentSpreadIndex + 1, 'next');
+                } else {
+                    closeBook();
+                }
+            });
+
+            prevBtn.addEventListener('click', () => {
+                if (prevBtn.disabled) return;
+                
+                if (isBookOpen && currentSpreadIndex > 0) {
+                    turnPageAnimation(currentSpreadIndex - 1, 'prev');
+                }
+            });
+            
+            function updateButtons() {
+                if (!isBookOpen) {
+                    prevBtn.disabled = true;
+                    nextBtn.textContent = 'Abrir libro 📖';
+                } else {
+                    prevBtn.disabled = currentSpreadIndex === 0;
+                    if (currentSpreadIndex === totalSpreads - 1) {
+                         nextBtn.textContent = 'Cerrar libro 🔒';
+                         nextBtn.disabled = false; 
+                    } else {
+                        nextBtn.textContent = 'Siguiente ➡️';
+                        nextBtn.disabled = false;
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mi Portafolio Interactivo de Proyectos</title>
+    <link rel="icon" href="Logout.png">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <style>
+        /* RESET BÁSICO */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f0f2f5;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        /* 1. ESTILOS DE LA CABECERA (HERO) */
+        #hero-section {
+            background-color: #007bff; /* Color azul primario */
+            color: white;
+            padding: 60px 20px;
+            text-align: center;
+            margin-bottom: 30px;
+            animation: fadeInDown 1s ease-out; /* Animación de bienvenida */
+        }
+
+        #hero-section h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        /* 2. ESTILOS DE LA GALERÍA */
+        #proyectos-galeria {
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        #proyectos-galeria h2 {
+            text-align: center;
+            margin-bottom: 40px;
+            font-size: 2em;
+            color: #007bff;
+        }
+
+        /* Contenedor de las tarjetas: usa Grid para organizarlas */
+        .contenedor-proyectos {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 30px;
+        }
+
+        /* Estilo para cada tarjeta */
+        .proyecto-card {
+            background-color: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            opacity: 0; /* Inicialmente oculto para el efecto JS */
+            transform: translateY(20px);
+        }
+
+        /* Clase añadida por JavaScript para mostrar la tarjeta */
+        .proyecto-card.visible {
+            opacity: 1;
+            transform: translateY(0);
+            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+        }
+
+        /* Efecto de Interacción (Hover) */
+        .proyecto-card:hover {
+            transform: translateY(-8px); /* Levanta la tarjeta */
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            cursor: pointer;
+        }
+
+        .icono-proyecto {
+            font-size: 3em;
+            color: #007bff;
+            margin-bottom: 15px;
+        }
+
+        .proyecto-card h3 {
+            margin-bottom: 10px;
+            font-size: 1.5em;
+        }
+
+        .proyecto-card p {
+            margin-bottom: 20px;
+            color: #666;
+        }
+
+        /* Estilo del botón */
+        .boton-proyecto {
+            display: inline-block;
+            background-color: #28a745; /* Color verde para el botón */
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+
+        .boton-proyecto:hover {
+            background-color: #218838;
+        }
+
+        /* 3. ESTILOS DEL PIE DE PÁGINA */
+        footer {
+            text-align: center;
+            padding: 20px;
+            background-color: #333;
+            color: white;
+            margin-top: 40px;
+        }
+
+        /* Keyframe para la animación de bienvenida */
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header id="hero-section">
+        <h1>¡Bienvenido a mis Proyectos!</h1>
+        <p>Explora mi trabajo en Estructuras de Datos de manera Interactiva.</p>
+    </header>
+
+    <main id="proyectos-galeria">
+        <h2>Mis Proyectos</h2>
+        
+        <div class="contenedor-proyectos">
+            
+            <article class="proyecto-card" id="card-glosario">
+                <i class="fas fa-book-open icono-proyecto"></i>
+                <h3>Glosario Interactivo</h3>
+                <p>Una herramienta dinámica para consultar definiciones de términos técnicos clave.</p>
+                <a href="Glosario.html" class="boton-proyecto">Ver Glosario</a>
+            </article>
+
+            <article class="proyecto-card" id="card-colas">
+                <i class="fas fa-users icono-proyecto"></i>
+                <h3>Simulación de Colas (Queues)</h3>
+                <p>Implementación y visualización del principio FIFO (First-In, First-Out).</p>
+                <a href="Colas_.html" class="boton-proyecto">Ver Proyecto</a>
+            </article>
+
+            <article class="proyecto-card" id="card-pilas">
+                <i class="fas fa-layer-group icono-proyecto"></i>
+                <h3>Manejo de Pilas (Stacks)</h3>
+                <p>Demostración del principio LIFO (Last-In, First-Out) con una interfaz clara.</p>
+                <a href="PilasV2.html" class="boton-proyecto">Ver Proyecto</a>
+            </article>
+
+            <article class="proyecto-card" id="card-listas">
+                <i class="fas fa-link icono-proyecto"></i>
+                <h3>Listas Enlazadas Dinámicas</h3>
+                <p>Visualización de la inserción y eliminación de nodos en listas simples/dobles.</p>
+                <a href="Listas.html" class="boton-proyecto">Ver Proyecto</a>
+            </article>
+
+            <article class="proyecto-card" id="card-arboles">
+                <i class="fas fa-tree icono-proyecto"></i>
+                <h3>Explorador de Árboles</h3>
+                <p>Recorridos y manipulación de estructuras de árbol binario.</p>
+                <a href="arboles.html" class="boton-proyecto">Ver Proyecto</a>
+            </article>
+
+            <article class="proyecto-card" id="card-maquina">
+                <i class="fas fa-candy-cane icono-proyecto"></i>
+                <h3>Máquina Expendedora</h3>
+                <p>Simulación interactiva de una máquina expendedora usando lógica de pilas y colas.</p>
+                <a href="MaquinaExpendedora.html" class="boton-proyecto">Ver Proyecto</a>
+            </article>
+            
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 Mi Portafolio de Proyectos. Jimenez Villaseñor Julian DSM-42.</p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Selecciona todas las tarjetas de proyecto
+            const cards = document.querySelectorAll('.proyecto-card');
+            
+            // Función para hacer visibles las tarjetas con un retraso escalonado
+            cards.forEach((card, index) => {
+                // Aplica la clase 'visible' después de un pequeño retraso
+                // (index * 150) crea un efecto de cascada
+                setTimeout(() => {
+                    card.classList.add('visible');
+                }, index * 150); 
+            });
+        });
+    </script>
+</body>
+</html>

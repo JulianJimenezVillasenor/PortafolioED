@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lista Enlazada Simple: Interfaz Profesional</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="icon" href="Logout.png">
+    <style>
+        /* ==================================== */
+        /* REGLA CRUCIAL PARA PREVENIR OVERFLOW */
+        /* ==================================== */
+        *, *::before, *::after {
+            box-sizing: border-box; /* Incluye padding y border en el width/height */
+        }
+        
+        /* ==================================== */
+        /* ESTILOS CSS - DISEÑO PROFESIONAL     */
+        /* ==================================== */
+        :root {
+            --primary-color: #1a73e8; /* Azul principal de Google */
+            --secondary-color: #34a853; /* Verde para Inserción Rápida */
+            --tertiary-color: #fbbc04; /* Amarillo/Naranja */
+            --danger-color: #ea4335; /* Rojo para Eliminación */
+            --background-light: #f8f9fa; /* Fondo muy claro */
+            --background-mid: #e8eaed; /* Fondo de sección de visualización */
+            --text-color: #202124;
+            --shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+            --border-radius: 12px;
+        }
+
+        /* Base y Tipografía */
+        body {
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: var(--background-mid);
+            color: var(--text-color);
+            line-height: 1.6;
+            max-width: 100vw; 
+            overflow-x: hidden; 
+        }
+        
+        img {
+            max-width: 100%;
+            height: auto;
+        }
+
+        .container {
+            max-width: 1300px;
+            margin: auto;
+            display: grid;
+            gap: 25px;
+            grid-template-areas:
+                "header"
+                "controls"
+                "visualization"
+                "theory";
+            background-color: white;
+            padding: 25px;
+            border-radius: var(--border-radius);
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Botón de Regreso */
+        .boton-regreso {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            text-decoration: none;
+            color: var(--primary-color);
+            font-weight: 500;
+            padding: 8px 15px;
+            border-radius: 50px;
+            background-color: white;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            transition: background-color 0.2s, transform 0.2s;
+            z-index: 100;
+        }
+        
+        .boton-regreso:hover {
+            background-color: var(--background-light);
+            transform: scale(1.05);
+        }
+
+        h1 {
+            color: var(--primary-color);
+            text-align: center;
+            font-weight: 700;
+            margin: 0;
+            padding-bottom: 15px;
+            border-bottom: 4px solid var(--primary-color);
+            grid-area: header;
+            font-size: 2.5em;
+        }
+
+        h2 {
+            color: var(--primary-color);
+            font-size: 1.6em;
+            margin-top: 0;
+            padding-bottom: 5px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        h3 {
+            color: var(--secondary-color);
+            font-size: 1.3em;
+            margin-top: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* --- Controles (Panel de Operaciones) --- */
+        #controls {
+            grid-area: controls;
+            display: flex; 
+            flex-wrap: wrap; /* Permite que las secciones de inserción/eliminación se apilen */
+            justify-content: center;
+            gap: 25px; /* Espacio entre las dos secciones principales */
+            padding: 25px;
+            background-color: var(--background-light);
+            border-radius: var(--border-radius);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Contenedor principal para Inserción o Eliminación */
+        .operation-section {
+            flex: 1 1 450px; /* Toma un ancho considerable, se apila si la pantalla es muy pequeña */
+            padding: 15px;
+            background-color: white;
+            border-radius: var(--border-radius);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .section-title {
+            font-size: 1.5em;
+            font-weight: 700;
+            margin: 0 0 20px 0;
+            padding-bottom: 10px;
+            border-bottom: 3px solid; 
+            text-align: center;
+        }
+
+        .insertion-title { border-bottom-color: var(--secondary-color); color: var(--secondary-color); }
+        .deletion-title { border-bottom-color: var(--danger-color); color: var(--danger-color); }
+
+        /* Contenedor para que los 3 controles internos se distribuyan */
+        .control-groups-wrapper {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px; /* Espacio entre los grupos individuales (3 por sección) */
+            justify-content: center;
+        }
+
+        /* Grupo Individual de Control (Poner al Inicio, Quitar por Valor, etc.) */
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 18px;
+            border-radius: var(--border-radius);
+            background-color: #ffffff;
+            gap: 12px;
+            flex: 1 1 180px; /* Permite 2 o 3 grupos por fila dentro de la sección */
+            min-width: 180px;
+            transition: transform 0.2s;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+        
+        .control-group:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 18px rgba(0, 0, 0, 0.15);
+        }
+        
+        /* Línea de color para diferenciar Inserción de Eliminación */
+        .operation-section:first-child .control-group { 
+            border-left: 5px solid var(--secondary-color);
+        }
+        .operation-section:last-child .control-group { 
+            border-left: 5px solid var(--danger-color);
+        }
+
+
+        .input-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            width: 100%;
+            justify-content: center;
+        }
+
+        label {
+            font-weight: 500;
+            font-size: 0.9em;
+        }
+
+        input[type="number"] {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            width: 60px;
+            text-align: center;
+            font-size: 1em;
+            transition: border-color 0.2s;
+        }
+
+        input[type="number"]:focus {
+            border-color: var(--primary-color);
+            outline: none;
+        }
+
+        button {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.95em;
+            transition: background-color 0.2s, transform 0.1s;
+            width: 100%;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        
+        button:hover {
+            transform: translateY(-1px);
+        }
+
+        .btn-add-start { background-color: var(--secondary-color); color: white; }
+        .btn-add-end { background-color: var(--tertiary-color); color: var(--text-color); }
+        .btn-add-index { background-color: var(--primary-color); color: white; }
+        .btn-delete { background-color: var(--danger-color); color: white; }
+
+        /* --- Visualización --- */
+        #visualization-section {
+            grid-area: visualization;
+            background-color: var(--background-mid);
+            padding: 35px; 
+            border-radius: var(--border-radius);
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.08);
+        }
+        
+        #visualization-section h2 {
+            margin-bottom: 15px;
+            border-bottom: 2px solid var(--background-light);
+            color: var(--text-color);
+        }
+
+        #visualization {
+            display: flex;
+            align-items: center;
+            min-height: 200px; 
+            overflow-x: auto; 
+            position: relative;
+            padding: 15px 0;
+        }
+
+        .node-container {
+            display: flex;
+            align-items: center;
+            margin-right: 30px; 
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        .node {
+            background-color: var(--primary-color);
+            color: white;
+            border: 4px solid #145cb6;
+            border-radius: 8px;
+            padding: 18px 25px;
+            min-width: 40px;
+            text-align: center;
+            box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.25);
+            font-size: 1.1em;
+            font-weight: 700;
+        }
+
+        .arrow {
+            width: 25px;
+            height: 4px;
+            background-color: var(--text-color);
+            margin: 0 10px;
+            position: relative;
+        }
+
+        .arrow::after {
+            content: '';
+            position: absolute;
+            right: -6px;
+            top: -6px;
+            width: 0;
+            height: 0;
+            border-top: 7px solid transparent;
+            border-bottom: 7px solid transparent;
+            border-left: 7px solid var(--text-color);
+        }
+
+        .null-pointer {
+            background-color: #bdc1c6;
+            color: var(--text-color);
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            font-weight: 500;
+            margin-left: 10px;
+        }
+
+        .head-label {
+            position: absolute;
+            top: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.9em;
+            font-weight: 700;
+            color: var(--primary-color);
+            background-color: white;
+            padding: 3px 8px;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--primary-color);
+        }
+
+        /* --- Sección Teórica --- */
+        #theory {
+            grid-area: theory;
+            background-color: var(--background-light);
+            padding: 30px;
+            border-radius: var(--border-radius);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .theory-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            margin-top: 20px;
+        }
+
+        .theory-card {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 5px solid var(--secondary-color);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+            transition: box-shadow 0.2s;
+        }
+        
+        .theory-card:hover {
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .theory-card ul {
+            padding-left: 20px;
+        }
+        
+        .theory-card li {
+            margin-bottom: 8px;
+        }
+
+        /* Media Queries para Responsividad */
+        @media (max-width: 992px) {
+            .container {
+                padding: 15px;
+                gap: 20px;
+            }
+            h1 {
+                font-size: 2.2em;
+            }
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            .boton-regreso {
+                position: static;
+                display: block;
+                margin-bottom: 15px;
+                text-align: center;
+            }
+            .container {
+                padding: 15px;
+                border-radius: 0;
+            }
+            h1 {
+                font-size: 1.8em;
+            }
+            /* Las secciones de operación (Inserción/Eliminación) se apilan */
+            .operation-section {
+                flex: 1 1 100%; 
+            }
+            /* Ajuste para inputs en móviles */
+            .input-row label {
+                flex-grow: 1;
+                text-align: right;
+            }
+            .input-row input {
+                flex-grow: 0;
+                width: 40px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .input-row input {
+                width: 30px;
+            }
+            .control-group button {
+                margin-top: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <a href="Proyectos.html" class="boton-regreso">
+        ← Volver al Portafolio
+    </a>
+    <div class="container">
+        <h1>🔗 Lista Enlazada Simple: Cómo Funciona Realmente</h1>
+        
+        <hr>
+
+        <div id="controls">
+            <div class="operation-section">
+                <h2 class="section-title insertion-title">➕ OPERACIONES DE INSERCIÓN</h2>
+                <div class="control-groups-wrapper">
+                    <div class="control-group">
+                        <label>PONER AL PRINCIPIO</label>
+                        <div class="input-row">
+                            <label for="startValue">Valor:</label>
+                            <input type="number" id="startValue" placeholder="Val" value="10">
+                            <button class="btn-add-start" onclick="addNodeStart()">Insertar</button>
+                        </div>
+                    </div>
+
+                    <div class="control-group">
+                        <label>PONER AL FINAL</label>
+                        <div class="input-row">
+                            <label for="endValue">Valor:</label>
+                            <input type="number" id="endValue" placeholder="Val" value="99">
+                            <button class="btn-add-end" onclick="addNodeEnd()">Insertar</button>
+                        </div>
+                    </div>
+
+                    <div class="control-group">
+                        <label>PONER EN POSICIÓN</label>
+                        <div class="input-row">
+                            <label for="posValue">Val:</label>
+                            <input type="number" id="posValue" placeholder="Val" value="5">
+                            <label for="position">Pos:</label>
+                            <input type="number" id="position" placeholder="Idx" value="1">
+                            <button class="btn-add-index" onclick="addNodeAt()">Insertar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="operation-section">
+                <h2 class="section-title deletion-title">❌ OPERACIONES DE ELIMINACIÓN</h2>
+                <div class="control-groups-wrapper">
+                    
+                    <div class="control-group">
+                        <label>QUITAR POR VALOR</label>
+                        <div class="input-row">
+                            <label for="deleteValue">Valor:</label>
+                            <input type="number" id="deleteValue" placeholder="Val">
+                            <button class="btn-delete" onclick="deleteNode()">Eliminar</button>
+                        </div>
+                    </div>
+
+                    <div class="control-group">
+                        <label>QUITAR POR POSICIÓN</label>
+                        <div class="input-row">
+                            <label for="deleteIndex">Posición (0-base):</label>
+                            <input type="number" id="deleteIndex" placeholder="Idx" value="0"> 
+                            <button class="btn-delete" onclick="deleteNodeAtPosition()">Eliminar</button>
+                        </div>
+                    </div>
+
+                    <div class="control-group">
+                        <label>QUITAR EL ÚLTIMO</label>
+                        <div class="input-row">
+                            <button class="btn-delete" onclick="deleteNodeLast()">Eliminar Último</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <hr>
+
+        <div id="visualization-section">
+            <div id="visualization">
+                </div>
+        </div>
+        
+        <hr>
+
+        <div id="theory">
+            <h2>📚 Teoría Extendida: Lista Enlazada Simple (Conceptos Clave)</h2>
+            <p>Una <strong>Lista Enlazada</strong> es una colección lineal de elementos llamados <strong>Nodos</strong>, donde el orden no se define por la ubicación contigua en memoria (como en un arreglo), sino por <strong>punteros</strong> (referencias) que enlazan un nodo con el siguiente.</p>
+
+            
+
+            <div class="theory-grid">
+                <div class="theory-card" style="border-left: 5px solid var(--primary-color);">
+                    <h3>⭐ Conceptos Fundamentales</h3>
+                    <ul>
+                        <li>Nodo (Caja de Datos): Es la unidad básica que guarda el <strong>valor</strong> (la información) y el <strong>puntero</strong> al siguiente nodo.</li>
+                        <li>Puntero o Enlace (Next): Es la dirección de memoria donde se encuentra el siguiente nodo. En una lista simple, solo hay un puntero, que apunta al nodo sucesor.</li>
+                        <li>Cabeza (P): Es el puntero que siempre apunta al <strong>primer nodo</strong> de la lista. Es el punto de partida para cualquier operación de recorrido o búsqueda. Si se pierde la Cabeza, se pierde toda la lista.</li>
+                        <li>FIN (NULL): El puntero del último nodo de la lista simple apunta a un valor nulo (<code>NULL</code>), indicando que la lista termina.</li>
+                    </ul>
+                </div>
+
+                <div class="theory-card" style="border-left: 5px solid var(--secondary-color);">
+                    <h3>🔄 Operaciones de Inserción</h3>
+                    <p>La principal ventaja de las listas enlazadas es la inserción eficiente en ciertas posiciones, ya que solo requiere reasignar punteros sin mover grandes bloques de datos.</p>
+                    <ul>
+                        <li>Poner al Principio: Es la operación más rápida. Simplemente se conecta el nuevo nodo directamente a la Cabeza, y la Cabeza apunta al nuevo nodo. ¡Es un cambio de puntero muy rápido!</li>
+                        <li>Poner en Posición/Medio: Requiere caminar por la lista desde el inicio hasta encontrar el lugar correcto. Esto toma más tiempo porque hay que pasar por muchos nodos antes de reasignar los punteros.</li>
+                        <li>Poner al Final: En una lista simple, también se debe caminar desde el principio hasta el último nodo para poder conectar el nuevo nodo al final de la cadena.</li>
+                    </ul>
+                </div>
+
+                <div class="theory-card" style="border-left: 5px solid var(--danger-color);">
+                    <h3>❌ Lógica de Eliminación</h3>
+                    <p>La eliminación requiere la reorganización de punteros para "saltar" el nodo a eliminar. Los casos principales son:</p>
+                    <ul>
+                        <li>Eliminar la Cabeza: El puntero de la Cabeza se mueve para apuntar al segundo nodo de la lista.</li>
+                        <li>Eliminar por Valor: Se debe recorrer la lista desde el inicio hasta encontrar el nodo que se quiere quitar. El puntero del nodo anterior se redirige para que "salte" el nodo a eliminar.</li>
+                        <li>Eliminar por Posición/Índice: Requiere contar la posición (0-base) desde el inicio hasta encontrar el nodo a eliminar.</li>
+                        <li>Liberación de Memoria: En lenguajes de bajo nivel, el nodo eliminado debe ser liberado explícitamente (como con <code>delete</code> o <code>free</code>).</li>
+                    </ul>
+                </div>
+            </div>
+
+            <h3 style="color:var(--primary-color);">💡 Listas Enlazadas vs. Arreglos (Ventajas y Desventajas)</h3>
+            <p>La elección entre una lista enlazada y un arreglo (vector) depende de las operaciones más frecuentes de la aplicación.</p>
+            <ul>
+                <li>Ventaja: Tamaño Dinámico: Las listas pueden crecer o reducirse indefinidamente sin redimensionamiento costoso.</li>
+                <li>Ventaja: Inserción/Eliminación Rápida (Principio): Ideales para estructuras como <strong>Pilas</strong> o <strong>Colas</strong>.</li>
+                <li>Desventaja: Acceso Lento (Por Índice): No tienen índices. Para acceder a un elemento enésimo, la lista debe ser recorrida desde la Cabeza.</li>
+                <li>Desventaja: Más Memoria: Cada nodo consume memoria adicional para almacenar el puntero al siguiente elemento.</li>
+            </ul>
+
+            <h3 style="color:var(--tertiary-color);">✨ Tipos de Listas Enlazadas</h3>
+            <ul>
+                <li>Lista Doblemente Enlazada: Cada nodo tiene dos punteros: uno al siguiente y otro al anterior. Permite recorrido en ambas direcciones y es más rápido para añadir o quitar al final.</li>
+                <li>Lista Enlazada Circular: El último nodo apunta de nuevo al primer nodo (la Cabeza), creando un ciclo. Es útil para la gestión de procesos o estructuras sin un inicio/fin fijo.</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // ====================================
+        //          LÓGICA JAVASCRIPT
+        // ====================================
+
+        class Node {
+            constructor(data) {
+                this.data = data;
+                this.next = null;
+            }
+        }
+
+        class LinkedList {
+            constructor() {
+                this.head = null;
+                this.size = 0;
+            }
+
+            // OPERACIONES DE INSERCIÓN
+
+            /**
+             * Agrega un nuevo nodo al inicio.
+             */
+            prepend(data) {
+                const newNode = new Node(data);
+                newNode.next = this.head;
+                this.head = newNode;
+                this.size++;
+            }
+
+            /**
+             * Agrega un nuevo nodo al final.
+             */
+            append(data) {
+                const newNode = new Node(data);
+                if (!this.head) {
+                    this.head = newNode;
+                } else {
+                    let current = this.head;
+                    while (current.next) {
+                        current = current.next;
+                    }
+                    current.next = newNode;
+                }
+                this.size++;
+            }
+
+            /**
+             * Agrega un nuevo nodo en una posición específica (índice).
+             */
+            insertAt(data, index) {
+                if (index < 0 || index > this.size) {
+                    alert(`Posición fuera de rango. La lista tiene ${this.size} nodos (índices 0 a ${this.size}).`);
+                    return false;
+                }
+
+                if (index === 0) {
+                    this.prepend(data);
+                    return true;
+                }
+
+                if (index === this.size) {
+                    this.append(data);
+                    return true;
+                }
+
+                const newNode = new Node(data);
+                let current = this.head;
+                let previous = null;
+                let count = 0;
+
+                while (count < index) {
+                    previous = current;
+                    current = current.next;
+                    count++;
+                }
+
+                newNode.next = current;
+                previous.next = newNode;
+                this.size++;
+                return true;
+            }
+            
+            // OPERACIONES DE ELIMINACIÓN
+
+            /**
+             * Elimina el primer nodo que coincida con el valor dado.
+             */
+            delete(data) {
+                if (!this.head) {
+                    return false;
+                }
+
+                // Caso 1: Eliminar la Cabeza
+                if (this.head.data === data) {
+                    this.head = this.head.next;
+                    this.size--;
+                    return true;
+                }
+
+                let current = this.head;
+                let previous = null;
+
+                while (current && current.data !== data) {
+                    previous = current;
+                    current = current.next;
+                }
+
+                if (!current) {
+                    return false; // Valor no encontrado
+                }
+
+                // Caso 2: Eliminar nodo intermedio o final
+                previous.next = current.next;
+                this.size--;
+                return true;
+            }
+
+            /**
+             * Elimina el nodo en una posición específica (índice).
+             * @param {number} index - La posición del nodo a eliminar (0 basado).
+             */
+            deleteAt(index) {
+                if (index < 0 || index >= this.size || !this.head) {
+                    alert(`Posición ${index} fuera de rango. La lista tiene ${this.size} nodos.`);
+                    return false;
+                }
+                
+                // Caso 1: Eliminar la Cabeza (index = 0)
+                if (index === 0) {
+                    this.head = this.head.next;
+                    this.size--;
+                    return true;
+                }
+
+                let current = this.head;
+                let previous = null;
+                let count = 0;
+
+                // Recorrer hasta la posición anterior al índice
+                while (count < index) {
+                    previous = current;
+                    current = current.next;
+                    count++;
+                }
+
+                // Eliminar el nodo redirigiendo el puntero del anterior
+                previous.next = current.next;
+                this.size--;
+                return true;
+            }
+
+            /**
+             * Elimina el último nodo de la lista.
+             */
+            deleteLast() {
+                if (!this.head) {
+                    alert("La lista ya está vacía.");
+                    return false;
+                }
+
+                // Caso 1: Solo hay un nodo
+                if (!this.head.next) {
+                    this.head = null;
+                    this.size = 0;
+                    return true;
+                }
+
+                let current = this.head;
+                let previous = null;
+
+                // Recorrer hasta que current.next sea el último nodo
+                while (current.next) {
+                    previous = current;
+                    current = current.next;
+                }
+
+                // Establecer el puntero 'next' del penúltimo nodo a NULL
+                previous.next = null;
+                this.size--;
+                return true;
+            }
+        }
+
+        // ====================================
+        //          MANIPULACIÓN DEL DOM
+        // ====================================
+
+        const list = new LinkedList();
+        const visualizationArea = document.getElementById('visualization');
+
+        function renderList() {
+            visualizationArea.innerHTML = '';
+
+            if (!list.head) {
+                visualizationArea.innerHTML = '<p style="color:var(--text-color); font-size:1.1em; text-align:center; width:100%;">La lista está vacía. ¡Intenta "Poner al Principio"!</p>';
+                return;
+            }
+
+            let current = list.head;
+            let isHead = true;
+
+            while (current) {
+                const nodeContainer = document.createElement('div');
+                nodeContainer.className = 'node-container';
+
+                if (isHead) {
+                    const headLabel = document.createElement('span');
+                    headLabel.className = 'head-label';
+                    headLabel.textContent = 'P';
+                    nodeContainer.appendChild(headLabel);
+                    isHead = false;
+                }
+
+                const nodeDiv = document.createElement('div');
+                nodeDiv.className = 'node';
+                nodeDiv.textContent = current.data;
+                nodeContainer.appendChild(nodeDiv);
+
+                if (current.next) {
+                    const arrowDiv = document.createElement('div');
+                    arrowDiv.className = 'arrow';
+                    nodeContainer.appendChild(arrowDiv);
+                } else {
+                    const nullPointer = document.createElement('div');
+                    nullPointer.className = 'null-pointer';
+                    nullPointer.textContent = 'FIN (NULL)';
+                    nodeContainer.appendChild(nullPointer);
+                }
+
+                visualizationArea.appendChild(nodeContainer);
+                current = current.next;
+            }
+        }
+
+        // --- Handlers de Inserción ---
+
+        function addNodeStart() {
+            const inputElement = document.getElementById('startValue');
+            const value = parseInt(inputElement.value);
+
+            if (isNaN(value) || inputElement.value.trim() === '') return alert("Introduce un número válido.");
+
+            list.prepend(value);
+            inputElement.value = value + 1;
+            renderList();
+        }
+
+        function addNodeEnd() {
+            const inputElement = document.getElementById('endValue');
+            const value = parseInt(inputElement.value);
+
+            if (isNaN(value) || inputElement.value.trim() === '') return alert("Introduce un número válido.");
+
+            list.append(value);
+            inputElement.value = value + 1;
+            renderList();
+        }
+
+        function addNodeAt() {
+            const valueInput = document.getElementById('posValue');
+            const indexInput = document.getElementById('position');
+            const value = parseInt(valueInput.value);
+            const index = parseInt(indexInput.value);
+
+            if (isNaN(value) || isNaN(index) || valueInput.value.trim() === '' || indexInput.value.trim() === '') {
+                return alert("Introduce valores válidos para el número y la posición.");
+            }
+
+            if (list.insertAt(value, index)) {
+                valueInput.value = value + 1;
+                indexInput.value = index + 1;
+                renderList();
+            }
+        }
+
+        // --- Handlers de Eliminación ---
+
+        // 1. Eliminar por Valor
+        function deleteNode() {
+            const inputElement = document.getElementById('deleteValue');
+            const value = parseInt(inputElement.value);
+
+            if (isNaN(value) || inputElement.value.trim() === '') return alert("Introduce un número válido para eliminar.");
+
+            const wasDeleted = list.delete(value);
+
+            if (wasDeleted) {
+                renderList();
+            } else {
+                alert(`El valor ${value} no se encontró en la lista.`);
+            }
+
+            inputElement.value = '';
+        }
+        
+        // 2. Eliminar por Posición
+        function deleteNodeAtPosition() {
+            const indexInput = document.getElementById('deleteIndex');
+            const index = parseInt(indexInput.value);
+
+            if (isNaN(index) || indexInput.value.trim() === '') return alert("Introduce una posición válida.");
+
+            const wasDeleted = list.deleteAt(index);
+
+            if (wasDeleted) {
+                renderList();
+            } 
+        }
+
+        // 3. Eliminar el Último
+        function deleteNodeLast() {
+            // El método de la clase ya maneja la alerta si está vacía
+            list.deleteLast();
+            renderList();
+        }
+
+
+        // Inicializar la visualización con algunos nodos de ejemplo
+        list.prepend(50);
+        list.prepend(30);
+        list.prepend(10);
+        renderList();
+    </script>
+</body>
+</html>

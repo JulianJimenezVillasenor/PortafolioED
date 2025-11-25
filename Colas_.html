@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Colas Interactivas — Cola Simple y Cola Circular</title>
+  <link rel="icon" href="LogoUT.png">
+  <style>
+    /* VARIABLES Y BASE: Tema Claro con Contraste MÁXIMO */
+    :root{
+      /* Colores base para máximo contraste */
+      --bg:#f8f9fc;     
+      --card:#ffffff;   
+      --text:#111827;   
+      
+      /* Colores de acento más fuertes */
+      --accent:#0088cc; /* Azul oscuro y fuerte para FRENTE/Enqueue */
+      --muted:#374151;  /* Gris oscuro para texto secundario (alto contraste) */
+      --danger:#dc267f; /* Magenta intenso para FINAL/warnings */
+      
+      --cell-size:80px;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+    }
+    *{box-sizing:border-box}
+    body{
+      background:var(--bg); 
+      color:var(--text); 
+      margin:0; padding:24px;
+    }
+
+    /* RESPONSIVIDAD: Estructura Principal */
+    .wrap{
+      max-width:1100px;
+      margin:0 auto;
+      display:grid;
+      grid-template-columns:1fr 360px; /* Layout por defecto (Desktop) */
+      gap:20px;
+      align-items:start
+    }
+    header{grid-column:1/-1;display:flex;gap:16px;align-items:center}
+    header h1{font-size:24px;margin:0; color: var(--text);} 
+    header p{margin:0;color:var(--muted);font-size:14px}
+
+    /* GENERALES */
+    .card{
+      background:var(--card); 
+      padding:16px;border-radius:12px;
+      box-shadow:0 6px 18px rgba(0,0,0,0.12); 
+      border: 1px solid rgba(0,0,0,0.1);
+    }
+    .section-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px; border-bottom: 1px solid rgba(0,0,0,0.1); padding-bottom: 8px; font-weight: 700;}
+    
+    /* RESPONSIVIDAD: Controles y Inputs */
+    .controls{
+        display:flex;
+        gap:8px;
+        align-items:center;
+        flex-wrap: wrap; 
+    }
+    input[type="text"], input[type="number"], select{
+      padding:10px;border-radius:8px;
+      border:1px solid #a8a8a8; 
+      background:#f0f4f8; 
+      color:var(--text);
+      width: clamp(100px, 30vw, 120px); 
+      font-size: 14px;
+    }
+    
+    /* BOTONES (Alto Contraste) */
+    button{
+        background:var(--accent);border:0;padding:10px 14px;border-radius:8px;color:#fff; 
+        cursor:pointer;font-weight:700;transition: background-color .2s, transform .1s;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        box-shadow: 0 4px 8px rgba(0, 136, 204, 0.5); 
+    }
+    button:hover{ background: #0077b3; } 
+    button:active{ transform: scale(0.98); }
+    button.ghost{
+        background:transparent;border:1px solid var(--muted);color:var(--muted);
+        box-shadow: none;
+    }
+    button.ghost:hover{ background: rgba(0,0,0,0.08); color: var(--text);}
+    button.warn{
+        background:var(--danger);color:#fff;
+        box-shadow: 0 4px 8px rgba(220, 38, 127, 0.5); 
+    }
+    button.warn:hover{ background: #c52070; }
+
+
+    /* VISUALIZACIÓN DE COLA */
+    .visual{display:flex;flex-direction:column;gap:12px}
+    .array{
+      display:flex;
+      gap:10px;
+      /* CLAVE: Aumentado el padding vertical para que los punteros quepan */
+      padding: 50px 12px; 
+      background: #e9e9eb; 
+      border-radius: 8px;
+      border: 1px solid #d1d5db; 
+      overflow-x: auto; 
+      flex-wrap: wrap; 
+      justify-content: center; 
+    }
+    .cell{
+      min-width:var(--cell-size); 
+      height:var(--cell-size);
+      background:#ffffff; 
+      border-radius:12px;
+      display:flex;align-items:center;justify-content:center;
+      position:relative;
+      border:1px solid #d1d5db; 
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text); 
+      transition:transform .28s ease, box-shadow .28s, border-color .28s, background .28s;
+    }
+    
+    /* ESTILOS DE CELDAS */
+    .cell.empty{
+      color:var(--muted);opacity:0.6;
+      border:1px dashed var(--muted); 
+      background: #f3f4f6; 
+    }
+    .cell.filled{
+      box-shadow:0 0 18px rgba(0, 136, 204, 0.4); 
+      border:2px solid var(--accent); 
+      background: #e6f1f8; 
+      opacity: 1;
+    }
+    
+    /* PUNTEROS (frente/final) - MEJORAS DE VISIBILIDAD */
+    .pointer{
+        position:absolute;
+        left:50%;
+        transform:translateX(-50%);
+        background:var(--accent); 
+        color:#fff; 
+        padding:5px 12px; 
+        border-radius:8px;
+        font-size:14px; 
+        font-weight:800;
+        box-shadow: 0 4px 14px rgba(0, 136, 204, 1); 
+        white-space: nowrap; 
+        z-index: 10; 
+        top: -42px; 
+    }
+
+    /* Flecha hacia abajo para FRENTE */
+    .pointer:after {
+        content: '';
+        position: absolute;
+        bottom: -8px; 
+        left: 50%;
+        transform: translateX(-50%);
+        border-width: 8px 8px 0;
+        border-style: solid;
+        border-color: var(--accent) transparent transparent transparent; 
+    }
+
+    .pointer.rear{
+        background:var(--danger); 
+        color:#fff;
+        box-shadow: 0 4px 14px rgba(220, 38, 127, 1); 
+        top: auto;
+        bottom: -42px; 
+    }
+
+    /* Flecha hacia arriba para FINAL */
+    .pointer.rear:after {
+        content: '';
+        position: absolute;
+        top: -8px; 
+        left: 50%;
+        transform: translateX(-50%);
+        border-width: 0 8px 8px;
+        border-style: solid;
+        border-color: transparent transparent var(--danger) transparent; 
+    }
+
+    /* PIE Y PANELES */
+    .small{font-size:13px;color:var(--muted)}
+    .log{
+      max-height:150px; 
+      overflow:auto;
+      background:#f3f4f6; 
+      padding:10px;border-radius:8px;
+      border:1px solid rgba(0,0,0,0.1);
+      font-size:14px;
+      line-height: 1.6;
+      color: var(--text);
+    }
+    .right-panel{position:sticky;top:24px}
+    .mode-row{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+    .explain{font-size:14px;color:var(--muted);line-height:1.6}
+    .explain h3{color: var(--text); font-size: 16px; margin-top: 15px; margin-bottom: 5px; border-bottom: 1px solid rgba(0,0,0,0.1); padding-bottom: 3px;}
+    footer{grid-column:1/-1;margin-top:24px;color:var(--muted);font-size:13px;text-align:center}
+
+    /* MEDIA QUERY: Diseño para Móviles/Tablets (menos de 980px) */
+    @media (max-width:980px){
+        body { padding: 12px; } 
+        header { flex-direction: column; align-items: flex-start; }
+        .wrap{
+            grid-template-columns:1fr; 
+        }
+        .right-panel{
+            position:relative;
+            top:0;
+            margin-top: 20px;
+        }
+        .controls {
+            justify-content: space-between; 
+        }
+        .controls label {
+            width: 100%; 
+            margin-bottom: -4px;
+        }
+        .controls button {
+            flex-grow: 1; 
+            min-width: 80px;
+        }
+        .controls input[type="text"], .controls input[type="number"] {
+            width: 100%; 
+            max-width: 150px;
+        }
+        .section-title {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+    }
+  </style>
+</head>
+<body>
+  <a href="Proyectos.html" class="boton-regreso">
+        ← Volver al Portafolio
+    </a>
+  <div class="wrap">
+    <header>
+      <div>
+        <h1>Colas Interactivas — Cola Simple & Cola Circular</h1>
+        <p>Visualiza las operaciones enqueue / dequeue, indicadores frente/final, y aprende con animaciones.</p>
+      </div>
+    </header>
+
+    <main>
+      <div class="card">
+        <div class="section-title"><strong>Configuración</strong>
+          <div class="controls">
+            <label class="small">Tamaño (MAX)</label>
+            <input id="configMax" type="number" min="3" max="12" value="7">
+            <button id="applyConfig" class="ghost">Aplicar</button>
+            <button id="resetAll" class="ghost">Reiniciar todo</button>
+          </div>
+        </div>
+        <div class="small explain">Puedes cambiar el tamaño antes de probar. El simulador contiene dos paneles (Cola Simple y Cola Circular) con controles independientes. Usa valores numéricos o texto breve para los elementos.</div>
+      </div>
+
+      <section class="card" style="margin-top:12px">
+        <div class="section-title"><strong>Cola Simple (FIFO)</strong>
+          <div class="small">Implementación con punteros <code>frente</code> y <code>final</code></div>
+        </div>
+
+        <div class="visual" id="simpleArea">
+          <div style="display:flex;justify-content:space-between;align-items:center; flex-wrap: wrap;">
+            <div class="controls" style="flex-grow: 1;">
+              <input id="simpleValue" placeholder="valor (ej: A)" type="text">
+              <button id="simpleEnq">Enqueue</button>
+              <button id="simpleDeq" class="ghost">Dequeue</button>
+              <button id="simpleClear" class="ghost">Limpiar</button>
+            </div>
+            <div class="small" style="margin-top: 10px;">Estado: <span id="simpleState">Listo</span></div>
+          </div>
+
+          <div class="array" id="simpleArray"></div>
+          <div style="display:flex;gap:12px;margin-top:6px;align-items:center; flex-wrap: wrap;">
+            <div class="small">frente: <strong id="simpleFront">0</strong></div>
+            <div class="small">final: <strong id="simpleRear">-1</strong></div>
+            <div class="small">ocupados: <strong id="simpleCount">0</strong></div>
+          </div>
+
+          <div style="margin-top:8px">
+            <div class="small">Registro de acciones:</div>
+            <div class="log" id="simpleLog"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card" style="margin-top:12px">
+        <div class="section-title"><strong>Cola Circular</strong>
+          <div class="small">Implementación con <code>frente</code>, <code>final</code> y <code>cantidad</code></div>
+        </div>
+
+        <div class="visual" id="circularArea">
+          <div style="display:flex;justify-content:space-between;align-items:center; flex-wrap: wrap;">
+            <div class="controls" style="flex-grow: 1;">
+              <input id="circValue" placeholder="valor (ej: 1)" type="text">
+              <button id="circEnq">Enqueue</button>
+              <button id="circDeq" class="ghost">Dequeue</button>
+              <button id="circClear" class="ghost">Limpiar</button>
+            </div>
+            <div class="small" style="margin-top: 10px;">Estado: <span id="circState">Listo</span></div>
+          </div>
+
+          <div class="array" id="circArray"></div>
+          <div style="display:flex;gap:12px;margin-top:6px;align-items:center; flex-wrap: wrap;">
+            <div class="small">frente: <strong id="circFront">0</strong></div>
+            <div class="small">final: <strong id="circRear">0</strong></div>
+            <div class="small">cantidad: <strong id="circCount">0</strong></div>
+          </div>
+
+          <div style="margin-top:8px">
+            <div class="small">Registro de acciones:</div>
+            <div class="log" id="circLog"></div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <aside class="right-panel">
+      <div class="card">
+        <div class="section-title"><strong>Conceptos Fundamentales de Colas (FIFO)</strong></div>
+        <div class="explain">
+          <p>Una Cola (Queue) es una estructura de datos lineal que sigue el principio FIFO (First-In, First-Out). El elemento que se inserta primero es el primero en ser eliminado. Las operaciones clave son: <strong>Enqueue</strong> (insertar al final) y <strong>Dequeue</strong> (eliminar al frente).</p>
+          
+          <p>Los punteros FRENTE (Front) y FINAL (Rear) indican las posiciones de la primera y la última celda ocupada (o la siguiente libre, dependiendo de la implementación).</p>
+          
+          <h3>Manejo de Errores</h3>
+          <p>🛑 El Overflow (Desbordamiento) ocurre cuando se intenta ejecutar una operación <strong>Enqueue</strong> en una cola que ya está llena (<code>cantidad == MAX</code>). El elemento no puede ser insertado.</p>
+          <p>⚠️ El Underflow (Subdesbordamiento) ocurre cuando se intenta ejecutar una operación <strong>Dequeue</strong> en una cola que ya está vacía (<code>cantidad == 0</code>). No hay elementos para eliminar.</p>
+          
+          <h3>Tipos de Implementación</h3>
+          <p><strong>1. Cola Simple:</strong> Implementada con un arreglo lineal. El <code>frente</code> avanza con cada Dequeue, y el <code>final</code> con cada Enqueue. Una de sus limitaciones es el desperdicio de espacio al liberar celdas al inicio que no pueden ser reutilizadas.</p>
+          <p><strong>2. Cola Circular:</strong> Resuelve el problema de la cola simple reutilizando el espacio al inicio del arreglo. Los punteros <code>frente</code> y <code>final</code> avanzan de forma circular mediante la operación de módulo (<code>% MAX</code>). Se utiliza un contador (<code>cantidad</code>) para diferenciar entre una cola llena y una cola vacía.</p>
+        </div>
+      </div>
+    </aside>
+
+    <footer>
+      <p>&copy; 2025 Objeto Multimedia Interactivo. Estructuras de Datos. Todos los derechos reservados.
+        </p>
+        <p>por: Julian Jimenez Villaseñor DSM-42</p>
+    </footer>
+  </div>
+
+  <script>
+  // ====== Utilidades ======
+  function $(id){return document.getElementById(id)}
+  function log(el, msg){ const d = document.createElement('div'); d.textContent = msg; d.style.color = 'var(--text)'; el.prepend(d); if(el.childElementCount>200) el.removeChild(el.lastChild);} 
+
+  // ====== Sonido simple (Web Audio) ======
+  const AudioCtx = window.AudioContext || window.webkitAudioContext;
+  let audioCtx = null;
+  function beep(freq=440, duration=0.07){
+    if(!audioCtx) audioCtx = new AudioCtx();
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    o.frequency.value = freq; o.type='sine';
+    o.connect(g); g.connect(audioCtx.destination);
+    g.gain.value = 0.02;
+    o.start();
+    setTimeout(()=>{ o.stop(); }, duration*1000);
+  }
+
+  // ====== Estado y render helpers ======
+  let MAX = parseInt($('configMax').value,10) || 7;
+
+  // SIMPLE QUEUE (no circular) - implementación con front y rear que se mueven
+  const simple = { arr: [], front:0, rear:-1, count:0 };
+  function simpleInit(){ simple.arr = new Array(MAX).fill(null); simple.front = 0; simple.rear = -1; simple.count = 0; renderSimple(); $('simpleLog').innerHTML=''; $('simpleState').textContent='Listo'; }
+  function renderSimple(){ 
+    const container = $('simpleArray'); 
+    container.innerHTML=''; 
+    
+    for(let i=0;i<MAX;i++){ 
+      const c = document.createElement('div'); 
+      c.className='cell '+(simple.arr[i]===null?'empty':'filled'); 
+      c.textContent = simple.arr[i]===null?'-':simple.arr[i]; 
+      
+      // Punteros: frente
+      if(i===simple.front && simple.count>0){ 
+        const p = document.createElement('div'); 
+        p.className='pointer'; 
+        p.textContent='FRENTE'; 
+        c.appendChild(p);
+      } 
+      
+      // Punteros: final
+      if(i===simple.rear && simple.count>0){ 
+        const p2 = document.createElement('div'); 
+        p2.className='pointer rear'; 
+        p2.textContent='FINAL'; 
+        c.appendChild(p2);
+      } 
+      container.appendChild(c);
+    }
+    $('simpleFront').textContent = simple.front;
+    $('simpleRear').textContent = simple.rear;
+    $('simpleCount').textContent = simple.count;
+  }
+
+  function simpleEnqueue(val){ if(val===''){ $('simpleState').textContent='Ingresa un valor'; return; } if(simple.rear >= MAX-1){ $('simpleState').textContent='Cola llena'; log($('simpleLog'), 'Intento enqueue → Cola llena (Overflow)'); beep(280,0.08); return; } simple.rear++; simple.arr[simple.rear]=val; simple.count++; renderSimple(); $('simpleState').textContent='Enqueued: '+val; log($('simpleLog'), 'Enqueue('+val+') en pos '+simple.rear); beep(600,0.05);} 
+  function simpleDequeue(){ if(simple.count<=0 || simple.front>simple.rear){ $('simpleState').textContent='Cola vacía'; log($('simpleLog'), 'Intento dequeue → Cola vacía (Underflow)'); beep(240,0.08); return; } const val = simple.arr[simple.front]; simple.arr[simple.front]=null; simple.front++; simple.count--; renderSimple(); $('simpleState').textContent='Dequeued: '+val; log($('simpleLog'), 'Dequeue() → valor '+val); beep(740,0.06); }
+
+  // CIRCULAR QUEUE - front, rear, count
+  const circ = { arr: [], front:0, rear:0, count:0 };
+  function circInit(){ circ.arr = new Array(MAX).fill(null); circ.front = 0; circ.rear = 0; circ.count = 0; renderCirc(); $('circLog').innerHTML=''; $('circState').textContent='Listo'; }
+  function renderCirc(){ 
+    const container = $('circArray'); 
+    container.innerHTML=''; 
+    
+    for(let i=0;i<MAX;i++){ 
+      const c = document.createElement('div'); 
+      c.className='cell '+(circ.arr[i]===null?'empty':'filled'); 
+      c.textContent = circ.arr[i]===null?'-':circ.arr[i]; 
+      
+      // Punteros: frente
+      if(i===circ.front && circ.count>0){ 
+        const p = document.createElement('div'); 
+        p.className='pointer'; 
+        p.textContent='FRENTE'; 
+        c.appendChild(p);
+      } 
+      
+      // rear points to the NEXT free position in our design; we display rear-1 when count>0
+      let rearDisplay = (circ.rear - 1 + MAX) % MAX;
+      if(circ.count===0) rearDisplay = (circ.rear)%MAX; // show rear when empty
+      
+      // Punteros: final
+      if(i===rearDisplay && circ.count>0){ 
+        const p2 = document.createElement('div'); 
+        p2.className='pointer rear'; 
+        p2.textContent='FINAL'; 
+        c.appendChild(p2);
+      } 
+      container.appendChild(c);
+    }
+    $('circFront').textContent = circ.front;
+    $('circRear').textContent = circ.rear;
+    $('circCount').textContent = circ.count;
+  }
+
+  function circEnqueue(val){ if(val===''){ $('circState').textContent='Ingresa un valor'; return; } if(circ.count === MAX){ $('circState').textContent='Cola Circular llena'; log($('circLog'), 'Intento enqueue → Cola Circular llena (Overflow)'); beep(280,0.08); return; } circ.arr[circ.rear] = val; log($('circLog'), 'Enqueue('+val+') en pos '+circ.rear); circ.rear = (circ.rear + 1) % MAX; circ.count++; renderCirc(); $('circState').textContent='Enqueued: '+val; beep(620,0.05); }
+  function circDequeue(){ if(circ.count === 0){ $('circState').textContent='Cola Circular vacía'; log($('circLog'), 'Intento dequeue → Cola Circular vacía (Underflow)'); beep(240,0.08); return; } const val = circ.arr[circ.front]; circ.arr[circ.front] = null; log($('circLog'), 'Dequeue() → valor '+val+' desde pos '+circ.front); circ.front = (circ.front + 1) % MAX; circ.count--; renderCirc(); $('circState').textContent='Dequeued: '+val; beep(700,0.06); }
+
+  // ====== Event bindings ======
+  document.addEventListener('DOMContentLoaded', ()=>{
+    // initial
+    simpleInit(); circInit();
+
+    // simple
+    $('simpleEnq').addEventListener('click', ()=>{ simpleEnqueue($('simpleValue').value.trim()); $('simpleValue').value=''; $('simpleValue').focus(); });
+    $('simpleDeq').addEventListener('click', ()=>{ simpleDequeue(); });
+    $('simpleClear').addEventListener('click', ()=>{ simpleInit(); });
+
+    // circular
+    $('circEnq').addEventListener('click', ()=>{ circEnqueue($('circValue').value.trim()); $('circValue').value=''; $('circValue').focus(); });
+    $('circDeq').addEventListener('click', ()=>{ circDequeue(); });
+    $('circClear').addEventListener('click', ()=>{ circInit(); });
+
+    // config
+    $('applyConfig').addEventListener('click', ()=>{ const v = parseInt($('configMax').value,10)||7; if(v<3||v>12){ alert('MAX debe estar entre 3 y 12'); return;} MAX=v; simpleInit(); circInit(); });
+    $('resetAll').addEventListener('click', ()=>{ $('configMax').value='7'; MAX=7; simpleInit(); circInit(); });
+
+    // keyboard shortcuts
+    window.addEventListener('keydown',(e)=>{ if(e.altKey && e.key==='1'){ $('simpleValue').focus(); e.preventDefault(); } if(e.altKey && e.key==='2'){ $('circValue').focus(); e.preventDefault(); } });
+
+    // helpful tooltip for initial state
+    log($('simpleLog'), 'Inicializado con MAX = '+MAX);
+    log($('circLog'), 'Inicializado con MAX = '+MAX);
+  });
+  </script>
+</body>
+</html>

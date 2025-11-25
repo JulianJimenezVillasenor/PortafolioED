@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌳 Árbol Binario de Búsqueda ABB</title>
+    <link rel="icon" href="Logout.png">
+    <style>
+        /* ---  VARIABLES DE COLOR --- */
+        :root {
+            --root-color: #f39c12;    
+            --parent-color: #007bff;  
+            --leaf-color: #2ecc71;    
+            --secondary-color: #34495e; 
+            --background-color: #f0f2f5; 
+            --container-color: #ffffff; 
+            --shadow-light: #ffffff;
+            --shadow-dark: #d4d8e0;
+            --error-color: #e74c3c;
+            --warning-color: #f39c12;
+            --line-color: #bdc3c7;
+        }
+
+        /* ---  ESTILOS GENERALES Y LAYOUT --- */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px; /* Reducir padding en general */
+            background-color: var(--background-color);
+            color: var(--secondary-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            color: var(--parent-color);
+            text-align: center;
+            margin-bottom: 25px; /* Reducir margen */
+            font-size: 2em; /* Tamaño de fuente adaptable */
+            text-shadow: 2px 2px 4px var(--shadow-dark); 
+        }
+
+        /* ---  CONTROLES Y BOTONES (SOFT UI) --- */
+        .controls {
+            display: flex;
+            gap: 15px; /* Reducir el espacio entre controles */
+            margin-bottom: 20px;
+            padding: 20px;
+            width: 95%; /* Usar más ancho en pantallas grandes */
+            max-width: 1200px;
+            background-color: var(--background-color);
+            border-radius: 20px;
+            box-shadow: 6px 6px 12px var(--shadow-dark), -6px -6px 12px var(--shadow-light);
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap; /* CLAVE: Permite que los controles salten de línea en pantallas pequeñas */
+        }
+
+        .input-group {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: nowrap; /* Evita que el input y el label se separen */
+        }
+
+        input[type="number"] {
+            padding: 8px;
+            border: none;
+            border-radius: 10px;
+            width: 60px; /* Reducir ancho */
+            background-color: var(--background-color);
+            text-align: center;
+            font-size: 0.9em;
+            color: var(--secondary-color);
+            box-shadow: inset 2px 2px 5px var(--shadow-dark), inset -2px -2px 5px var(--shadow-light);
+        }
+
+        button {
+            padding: 8px 15px; /* Reducir padding */
+            color: white;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: bold;
+            font-size: 0.9em; /* Reducir tamaño de fuente */
+            box-shadow: 3px 3px 6px var(--shadow-dark), -3px -3px 6px var(--shadow-light);
+        }
+
+        /* ---  CONTENIDO PRINCIPAL (LAYOUT GRID) --- */
+        .container {
+            display: grid;
+            grid-template-columns: 3fr 1fr; /* 3/4 para visualización, 1/4 para info en desktop */
+            gap: 20px; /* Reducir gap */
+            width: 95%; 
+            max-width: 1200px;
+        }
+
+        .visualization-area {
+            min-height: 550px;
+            background-color: var(--container-color);
+            border-radius: 20px;
+            box-shadow: 10px 10px 20px var(--shadow-dark), -10px -10px 20px var(--shadow-light);
+            overflow: auto; /* Permite scroll horizontal para el árbol */
+            padding: 5px; /* Reducir padding */
+            width: 100%; /* Asegura que tome todo el ancho de la columna */
+        }
+
+        #treeCanvas {
+            display: block;
+            /* Nota: El tamaño del canvas se maneja dinámicamente en JS para el árbol */
+        }
+
+        /* Panel de Información */
+        .info {
+            padding: 20px;
+            background-color: var(--container-color);
+            border-radius: 20px;
+            box-shadow: 6px 6px 12px var(--shadow-dark), -6px -6px 12px var(--shadow-light);
+        }
+
+        .info h3 {
+            font-size: 1.2em; /* Ajuste de tamaño */
+        }
+        
+        .info h4 {
+            font-size: 1em;
+        }
+
+        /* ---  RESPONSIVIDAD --- */
+        @media (max-width: 768px) {
+            
+            body {
+                padding: 10px;
+            }
+
+            h1 {
+                font-size: 1.6em;
+            }
+
+            .controls {
+                gap: 10px;
+                padding: 15px;
+                width: 100%;
+                justify-content: space-around;
+            }
+            
+            .input-group {
+                width: 48%; /* Ocupar casi la mitad del ancho */
+                flex-direction: column; /* Apilar label e input */
+                align-items: flex-start;
+                margin-bottom: 10px;
+            }
+
+            .input-group label {
+                font-size: 0.9em;
+            }
+            
+            .input-group input {
+                width: 90%; /* Ocupar casi todo el ancho de su grupo */
+            }
+
+            .controls button {
+                width: 48%;
+                font-size: 0.85em;
+            }
+            
+            #reset-btn {
+                width: 95%; /* Boton de reset a ancho completo */
+            }
+            
+            /* Cambiar a layout de una sola columna */
+            .container {
+                grid-template-columns: 1fr; 
+                gap: 20px;
+                width: 100%;
+            }
+
+            /* El panel de informacion debe ir despues del area de visualizacion */
+            .visualization-area {
+                order: 1; 
+                min-height: 350px; /* Reducir altura minima */
+            }
+
+            .info {
+                order: 2;
+                padding: 15px;
+            }
+        }
+        
+        /* --- ESTILOS VISUALES --- */
+        button:active {
+            box-shadow: inset 2px 2px 5px var(--shadow-dark), inset -2px -2px 5px var(--shadow-light);
+            transform: scale(0.98);
+        }
+
+        #insert-btn { background-color: var(--parent-color); }
+        #insert-btn:hover { background-color: #0069d9; }
+
+        #delete-btn { background-color: var(--error-color); }
+        #delete-btn:hover { background-color: #c0392b; }
+        
+        #reset-btn { background-color: var(--warning-color); }
+        #reset-btn:hover { background-color: #e67e22; }
+
+        .highlight {
+            font-weight: bold;
+            color: var(--leaf-color);
+        }
+        
+        #all-parents {
+            color: var(--error-color);
+            font-weight: bold;
+        }
+        
+        .legend {
+            margin-top: 20px;
+            padding-top: 10px;
+            border-top: 1px dashed var(--line-color);
+            font-size: 0.9em;
+        }
+        .legend div {
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+        }
+        .color-box {
+            width: 15px;
+            height: 15px;
+            border-radius: 3px;
+            margin-right: 10px;
+        }
+        .root-color-box { background-color: var(--root-color); }
+        .parent-color-box { background-color: var(--parent-color); }
+        .leaf-color-box { background-color: var(--leaf-color); }
+
+        #dynamic-info-panel {
+            padding: 15px;
+            border-radius: 10px;
+            background-color: var(--background-color);
+            box-shadow: inset 2px 2px 5px var(--shadow-dark);
+        }
+        .dynamic-label {
+            color: var(--secondary-color);
+        }
+        .dynamic-value {
+            color: var(--parent-color);
+            font-weight: bold;
+        }
+        .no-info {
+            color: var(--error-color);
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <a href="Proyectos.html" class="boton-regreso">
+        ← Volver al Portafolio
+    </a>
+    <h1>🌳 Visualizador Interactivo de Árboles Binarios de Búsqueda (ABB)</h1>
+
+    <div class="controls">
+        <div class="input-group">
+            <label for="insertValue">Insertar Valor:</label>
+            <input type="number" id="insertValue" placeholder="Ej: 50" value="50">
+            <button id="insert-btn" onclick="insertNode()">➕ Insertar</button>
+        </div>
+
+        <div class="input-group">
+            <label for="deleteValue">Eliminar Valor:</label>
+            <input type="number" id="deleteValue" placeholder="Ej: 45">
+            <button id="delete-btn" onclick="deleteNode()">➖ Eliminar</button>
+        </div>
+        
+        <button id="reset-btn" onclick="resetTree()">🔄 Reiniciar Árbol</button>
+    </div>
+
+    <div class="container">
+        <div class="visualization-area">
+            <canvas id="treeCanvas" width="900" height="550"></canvas>
+        </div>
+
+        <div class="info">
+            <h3>Propiedades del Árbol Completo</h3>
+            <p><strong>Raíz:</strong> <span id="root-info" class="highlight">N/A</span></p>
+            <p><strong>Altura (Niveles):</strong> <span id="tree-height" class="highlight">N/A</span></p>
+            <p><strong>Orden del Árbol:</strong> <span class="highlight">2</span> (Es Binario)</p>
+            <p><strong>Grado Máximo:</strong> <span class="highlight">2</span> (Máx. 2 hijos por nodo)</p>
+            <p><strong>Nodos Padres:</strong> <span id="all-parents" class="highlight">N/A</span></p>
+            <p><strong>Nodos Hoja:</strong> <span id="leaves-info" class="highlight">N/A</span></p>
+            
+            <hr>
+            
+            <h4>Recorridos</h4>
+            <p><strong>Inorden:</strong> <span id="inorder-info" class="highlight"></span></p>
+            <p><strong>Preorden:</strong> <span id="preorder-info" class="highlight"></span></p>
+            <p><strong>Postorden:</strong> <span id="postorden-info" class="highlight"></span></p>
+
+            <hr>
+            
+            <h3>Información Dinámica del Nodo Seleccionado</h3>
+            <p>Haz clic en un nodo del árbol para ver su información detallada.</p>
+            
+            <div id="dynamic-info-panel">
+                <p><span class="dynamic-label">Nodo Seleccionado:</span> <span id="selected-node-value" class="no-info">Ninguno</span></p>
+                
+                <p><span class="dynamic-label">Nivel del Nodo:</span> <span id="dynamic-level" class="no-info">N/A</span></p>
+                <p><span class="dynamic-label">Grado (Hijos Directos):</span> <span id="dynamic-degree" class="no-info">N/A</span></p>
+                <p><span class="dynamic-label">Orden (Subestructura):</span> <span id="dynamic-order" class="no-info">N/A</span></p>
+                <p><span class="dynamic-label">Hermano:</span> <span id="dynamic-sibling" class="no-info">N/A</span></p>
+
+                <hr>
+
+                <p><span class="dynamic-label">Subárbol Izquierdo (Hijo):</span> <span id="dynamic-left-child" class="no-info">N/A</span></p>
+                <p><span class="dynamic-label">Subárbol Derecho (Hijo):</span> <span id="dynamic-right-child" class="no-info">N/A</span></p>
+            </div>
+
+            <hr>
+            <p><strong>Mensajes:</strong> <span id="message">Listo.</span></p>
+            
+            <div class="legend">
+                <h4>Leyenda Visual de Nodos</h4>
+                <div><div class="color-box root-color-box"></div> Raíz</div>
+                <div><div class="color-box parent-color-box"></div> Padre</div>
+                <div><div class="color-box leaf-color-box"></div> Hoja</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- JAVASCRIPT: LOGICA Y VISUALIZACION ---
+        let nodeCount = 0; 
+
+        // 1. Clases Node y BinarySearchTree 
+        class Node {
+            constructor(data) {
+                this.data = data;
+                this.left = null;
+                this.right = null;
+                this.x = 0; 
+                this.y = 0; 
+                this.level = 0; 
+                this.mod = 0;
+            }
+        }
+
+        class BinarySearchTree {
+            constructor() {
+                this.root = null;
+            }
+
+            insert(data) {
+                const newNode = new Node(data);
+                if (this.root === null) {
+                    this.root = newNode;
+                    newNode.level = 1;
+                } else {
+                    this._insertNode(this.root, newNode, 1);
+                }
+                nodeCount++; 
+            }
+
+            _insertNode(node, newNode, level) {
+                const nextLevel = level + 1;
+                if (newNode.data < node.data) {
+                    if (node.left === null) {
+                        node.left = newNode;
+                        newNode.level = nextLevel;
+                    } else {
+                        this._insertNode(node.left, newNode, nextLevel);
+                    }
+                } else if (newNode.data > node.data) {
+                    if (node.right === null) {
+                        node.right = newNode;
+                        newNode.level = nextLevel;
+                    } else {
+                        this._insertNode(node.right, newNode, nextLevel);
+                    }
+                } else {
+                    throw new Error("El valor ya existe.");
+                }
+            }
+            
+            remove(data) {
+                let nodeDeleted = false;
+                
+                // Función auxiliar para detectar si la eliminacion fue exitosa (el contador global es suficiente)
+                const initialCount = nodeCount;
+                this.root = this._removeNode(this.root, data);
+
+                if (initialCount > nodeCount) {
+                     nodeDeleted = true;
+                }
+                
+                return nodeDeleted;
+            }
+            
+            findMinNode(node) {
+                if (node.left === null)
+                    return node;
+                else
+                    return this.findMinNode(node.left);
+            }
+
+            _removeNode(node, key) {
+                if (node === null) return null;
+                
+                if (key < node.data) {
+                    node.left = this._removeNode(node.left, key);
+                    return node;
+                }
+                else if (key > node.data) {
+                    node.right = this._removeNode(node.right, key);
+                    return node;
+                }
+                
+                else {
+                    
+                    // CASO 1: Nodo Hoja (0 hijos)
+                    if (node.left === null && node.right === null) {
+                        nodeCount--; // Descontar el nodo
+                        return null; 
+                    }
+                    
+                    // CASO 2: Nodo con 1 hijo
+                    if (node.left === null) {
+                        nodeCount--; // Descontar el nodo
+                        return node.right; 
+                    }
+                    else if (node.right === null) {
+                        nodeCount--; // Descontar el nodo
+                        return node.left; 
+                    }
+
+                    // CASO 3: Nodo con 2 hijos (Usar Sucesor Inmediato)
+                    
+                    const temp = this.findMinNode(node.right); 
+                    node.data = temp.data;
+                    
+                    // La eliminacion recursiva del Sucesor Inmediato (temp.data) se encargara de descontar el nodo
+                    node.right = this._removeNode(node.right, temp.data);
+                    
+                    return node;
+                }
+            }
+            
+            inorder(node, result = []) {
+                if (node) { this.inorder(node.left, result); result.push(node.data); this.inorder(node.right, result); }
+                return result;
+            }
+            preorder(node, result = []) {
+                if (node) { result.push(node.data); this.preorder(node.left, result); this.preorder(node.right, result); }
+                return result;
+            }
+            postorder(node, result = []) {
+                if (node) { this.postorder(node.left, result); this.postorder(node.right, result); result.push(node.data); }
+                return result;
+            }
+            
+            findAllParents(node, parentsList = []) {
+                if (node === null) return;
+                if (node.left !== null || node.right !== null) {
+                    parentsList.push(node.data);
+                }
+                this.findAllParents(node.left, parentsList);
+                this.findAllParents(node.right, parentsList);
+                return parentsList;
+            }
+            
+            getHeight(node) {
+                if (node === null) return 0;
+                return 1 + Math.max(this.getHeight(node.left), this.getHeight(node.right));
+            }
+
+            findParentAndSibling(targetNode) {
+                if (targetNode === this.root || this.root === null) return { parent: null, sibling: null };
+                
+                let parent = null;
+                let current = this.root;
+                let sibling = null;
+
+                while (current) {
+                    if (targetNode.data < current.data) {
+                        if (current.left && current.left.data === targetNode.data) {
+                            parent = current;
+                            sibling = current.right;
+                            break;
+                        }
+                        current = current.left;
+                    } else if (targetNode.data > current.data) {
+                        if (current.right && current.right.data === targetNode.data) {
+                            parent = current;
+                            sibling = current.left;
+                            break;
+                        }
+                        current = current.right;
+                    } else {
+                        break;
+                    }
+                }
+                return { parent, sibling };
+            }
+
+            findNodeAt(x, y) {
+                return this._findNodeAtRecursive(this.root, x, y);
+            }
+            
+            _findNodeAtRecursive(node, x, y) {
+                if (node === null) return null;
+                
+                const distance = Math.sqrt(Math.pow(x - node.x, 2) + Math.pow(y - node.y, 2));
+                if (distance <= NODE_RADIUS) {
+                    return node;
+                }
+                
+                let found = this._findNodeAtRecursive(node.left, x, y);
+                if (found) return found;
+                
+                return this._findNodeAtRecursive(node.right, x, y);
+            }
+        }
+
+        // 2. Logica de Visualizacion (Canvas) 
+        const canvas = document.getElementById('treeCanvas');
+        const ctx = canvas.getContext('2d');
+        const NODE_RADIUS = 25; 
+        const VERTICAL_SPACING = 85; 
+        const HORIZONTAL_NODE_SPACING = (NODE_RADIUS * 2) + 20; 
+        let tree = new BinarySearchTree();
+        let selectedNode = null; 
+
+        let x_offset_counter = 0; 
+        
+        function getCssVar(name) {
+             return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+        }
+
+        function getLineConnectionPoint(p1x, p1y, p2x, p2y, radius) {
+            const angle = Math.atan2(p2y - p1y, p2x - p1x);
+            return {
+                x: p1x + radius * Math.cos(angle),
+                y: p1y + radius * Math.sin(angle)
+            };
+        }
+
+        function calculateNodePositions(node) {
+            if (node === null) return;
+
+            node.mod = 0;
+
+            if (node.left === null && node.right === null) {
+                node.x = x_offset_counter;
+                x_offset_counter += HORIZONTAL_NODE_SPACING;
+            } else {
+                calculateNodePositions(node.left);
+                calculateNodePositions(node.right);
+
+                if (node.left !== null && node.right !== null) {
+                    let separation = node.right.x - node.left.x;
+                    
+                    if (separation < HORIZONTAL_NODE_SPACING) {
+                         let correction = HORIZONTAL_NODE_SPACING - separation;
+                         node.right.mod += correction;
+                         node.right.x += correction; 
+                    }
+                    
+                    node.x = (node.left.x + node.right.x) / 2;
+                } 
+                else if (node.left !== null) {
+                    node.x = node.left.x + HORIZONTAL_NODE_SPACING / 2;
+                } else if (node.right !== null) {
+                    node.x = node.right.x - HORIZONTAL_NODE_SPACING / 2;
+                }
+            }
+        }
+
+
+        function assignFinalPositions(node, offset_x = 0, current_mod = 0, level = 1) {
+            if (node === null) return;
+
+            node.x = node.x + current_mod + offset_x; 
+            node.y = level * VERTICAL_SPACING + NODE_RADIUS; 
+            node.level = level; 
+
+            assignFinalPositions(node.left, offset_x, current_mod + node.mod, level + 1);
+            assignFinalPositions(node.right, offset_x, current_mod + node.mod, level + 1);
+        }
+
+        function drawTree() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            if (tree.root === null) {
+                canvas.width = document.querySelector('.visualization-area').clientWidth; // Ajustar a ancho del contenedor
+                canvas.height = 550;
+                return;
+            }
+
+            x_offset_counter = NODE_RADIUS; 
+            calculateNodePositions(tree.root);
+
+            let minX = 10000;
+            let maxX = 0;
+            function getMinMaxX(node) {
+                if (node) {
+                    minX = Math.min(minX, node.x);
+                    maxX = Math.max(maxX, node.x);
+                    getMinMaxX(node.left);
+                    getMinMaxX(node.right);
+                }
+            }
+            getMinMaxX(tree.root);
+            
+            const requiredWidth = maxX - minX + HORIZONTAL_NODE_SPACING * 2;
+            
+            // Hacer que el canvas sea tan ancho como se necesite para el arbol, o al menos el ancho de su contenedor.
+            canvas.width = Math.max(document.querySelector('.visualization-area').clientWidth, requiredWidth); 
+            
+            const offsetX = (canvas.width / 2) - ((minX + maxX) / 2);
+            // Si el canvas es mas grande que el arbol, centrarlo; de lo contrario, alinear a la izquierda (ajuste visual para el scroll)
+            const finalOffsetX = (canvas.width > requiredWidth) ? (canvas.width / 2) - ((minX + maxX) / 2) : 50;
+
+
+            assignFinalPositions(tree.root, finalOffsetX, 0, 1);
+
+            const maxDepth = tree.getHeight(tree.root);
+            canvas.height = maxDepth * VERTICAL_SPACING + 50;
+
+            drawNodeAndLines(tree.root);
+            
+            if (selectedNode) {
+                drawNode(selectedNode, true); 
+            }
+        }
+
+        function drawNode(node, isSelected = false) {
+            if (node === null) return;
+
+            ctx.beginPath();
+            ctx.arc(node.x, node.y, NODE_RADIUS, 0, Math.PI * 2, false);
+            
+            ctx.shadowColor = isSelected ? 'rgba(255, 255, 0, 0.8)' : 'rgba(0, 0, 0, 0.3)';
+            ctx.shadowBlur = isSelected ? 15 : 5;
+            ctx.shadowOffsetX = 3;
+            ctx.shadowOffsetY = 3;
+
+            if (node === tree.root) {
+                ctx.fillStyle = getCssVar('--root-color');
+            } else if (node.left === null && node.right === null) {
+                ctx.fillStyle = getCssVar('--leaf-color');
+            } else {
+                ctx.fillStyle = getCssVar('--parent-color');
+            }
+
+            ctx.fill();
+
+            ctx.shadowColor = 'transparent';
+
+            ctx.strokeStyle = '#ffffff'; 
+            ctx.lineWidth = isSelected ? 4 : 2; 
+            ctx.stroke();
+
+            ctx.fillStyle = '#ffffff';
+
+            ctx.font = 'bold 18px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(node.data, node.x, node.y + 5); 
+            
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+            ctx.font = '10px Arial';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(`L${node.level}`, node.x, node.y - 12);
+        }
+
+        function drawNodeAndLines(node) {
+            if (node === null) return;
+
+            if (node !== tree.root) {
+                let parent = tree.findParentAndSibling(node).parent;
+                if (parent) {
+                    const startPoint = getLineConnectionPoint(parent.x, parent.y, node.x, node.y, NODE_RADIUS);
+                    const endPoint = getLineConnectionPoint(node.x, node.y, parent.x, parent.y, NODE_RADIUS);
+
+                    ctx.beginPath();
+                    ctx.moveTo(startPoint.x, startPoint.y); 
+                    ctx.lineTo(endPoint.x, endPoint.y);    
+                    ctx.strokeStyle = getCssVar('--line-color');
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                }
+            }
+
+            if (node !== selectedNode) {
+                drawNode(node, false);
+            }
+
+            drawNodeAndLines(node.left);
+            drawNodeAndLines(node.right);
+        }
+
+        // --- 3. LOGICA DE INTERACCION (CLIC) ---
+
+        canvas.addEventListener('click', function(event) {
+            const rect = canvas.getBoundingClientRect();
+            // Considerar el scroll del contenedor:
+            const scrollX = document.querySelector('.visualization-area').scrollLeft;
+            const scrollY = document.querySelector('.visualization-area').scrollTop;
+
+            const clientX = event.clientX;
+            const clientY = event.clientY;
+            
+            // Ajustar coordenadas para Canvas y Scroll
+            const canvasX = (clientX - rect.left) + scrollX; 
+            const canvasY = (clientY - rect.top) + scrollY;
+            
+            const clickedNode = tree.findNodeAt(canvasX, canvasY);
+
+            if (clickedNode) {
+                selectedNode = clickedNode;
+                updateDynamicInfo(selectedNode);
+                drawTree(); 
+            } else {
+                selectedNode = null;
+                updateDynamicInfo(null);
+                drawTree(); 
+            }
+        });
+
+        window.addEventListener('resize', drawTree); // Redibujar en cambio de tamaño de ventana
+
+        // --- FUNCION CLAVE: ACTUALIZAR INFORMACION DINAMICA ---
+        function updateDynamicInfo(node) {
+            // Elementos del panel
+            const selectedValue = document.getElementById('selected-node-value');
+            const dynamicLevel = document.getElementById('dynamic-level');
+            const dynamicDegree = document.getElementById('dynamic-degree');
+            const dynamicOrder = document.getElementById('dynamic-order');
+            const dynamicSibling = document.getElementById('dynamic-sibling');
+            const dynamicLeftChild = document.getElementById('dynamic-left-child');
+            const dynamicRightChild = document.getElementById('dynamic-right-child');
+
+            if (node) {
+                const { parent, sibling } = tree.findParentAndSibling(node);
+                
+                selectedValue.textContent = node.data;
+                selectedValue.className = 'dynamic-value';
+
+                // Nivel del Nodo
+                dynamicLevel.textContent = `L${node.level}`;
+                dynamicLevel.className = 'dynamic-value';
+
+                // Grado (Número de hijos: 0, 1 o 2)
+                let degree = 0;
+                if (node.left) degree++;
+                if (node.right) degree++;
+                dynamicDegree.textContent = degree;
+                dynamicDegree.className = 'dynamic-value';
+
+                // Orden (Si es izquierdo o derecho)
+                let orderText = 'Raíz';
+                if (parent) {
+                    if (parent.left && parent.left.data === node.data) {
+                        orderText = `Subarbol Izquierdo (Orden 1 de ${parent.data})`;
+                    } else if (parent.right && parent.right.data === node.data) {
+                        orderText = `Subarbol Derecho (Orden 2 de ${parent.data})`;
+                    }
+                }
+                dynamicOrder.textContent = orderText;
+                dynamicOrder.className = 'dynamic-value';
+
+                // Hermano
+                if (sibling) {
+                    dynamicSibling.textContent = sibling.data;
+                    dynamicSibling.className = 'dynamic-value';
+                } else {
+                    dynamicSibling.textContent = node === tree.root ? 'N/A' : 'Ninguno';
+                    dynamicSibling.className = node === tree.root ? 'no-info' : 'no-info';
+                }
+
+                // Subárbol Izquierdo/Hijo Izquierdo
+                if (node.left) {
+                    dynamicLeftChild.textContent = node.left.data;
+                    dynamicLeftChild.className = 'dynamic-value';
+                } else {
+                    dynamicLeftChild.textContent = 'Ninguno (NULL)';
+                    dynamicLeftChild.className = 'no-info';
+                }
+
+                // Subárbol Derecho/Hijo Derecho
+                if (node.right) {
+                    dynamicRightChild.textContent = node.right.data;
+                    dynamicRightChild.className = 'dynamic-value';
+                } else {
+                    dynamicRightChild.textContent = 'Ninguno (NULL)';
+                    dynamicRightChild.className = 'no-info';
+                }
+
+            } else {
+                // Estado por defecto (Ningún nodo seleccionado)
+                selectedValue.textContent = 'Ninguno';
+                selectedValue.className = 'no-info';
+                dynamicLevel.textContent = dynamicDegree.textContent = dynamicOrder.textContent = dynamicSibling.textContent = dynamicLeftChild.textContent = dynamicRightChild.textContent = 'N/A';
+                dynamicLevel.className = dynamicDegree.className = dynamicOrder.className = dynamicSibling.className = dynamicLeftChild.className = dynamicRightChild.className = 'no-info';
+            }
+        }
+
+
+        // 4. Funciones de Interfaz (Insertar, Eliminar, Reiniciar)
+        function insertNode() {
+            const inputElement = document.getElementById('insertValue');
+            const value = parseInt(inputElement.value);
+            const messageElement = document.getElementById('message');
+
+            if (isNaN(value)) {
+                messageElement.textContent = "Error: Por favor, ingrese un número valido.";
+                return;
+            }
+
+            try {
+                tree.insert(value);
+                messageElement.textContent = `Nodo ${value} insertado correctamente. (Total: ${nodeCount} nodos)`;
+                inputElement.value = ''; 
+                selectedNode = null;
+                drawTree();
+                updateInfo();
+                updateDynamicInfo(null);
+            } catch (e) {
+                messageElement.textContent = `Error: ${e.message}`;
+                // No deshacemos el contador aqui, se maneja dentro de insert si la logica falla
+            }
+        }
+        
+        function deleteNode() {
+            const inputElement = document.getElementById('deleteValue');
+            const value = parseInt(inputElement.value);
+            const messageElement = document.getElementById('message');
+
+            if (isNaN(value)) {
+                messageElement.textContent = "Error: Por favor, ingrese un número válido.";
+                return;
+            }
+            
+            const initialInorder = tree.inorder(tree.root).includes(value);
+
+            if (!initialInorder) {
+                messageElement.textContent = `Error: El nodo ${value} no se encuentra en el árbol.`;
+                return;
+            }
+
+            try {
+                const deleted = tree.remove(value);
+                if(deleted) {
+                    messageElement.textContent = `Nodo ${value} eliminado correctamente. (Total: ${nodeCount} nodos)`;
+                } else {
+                    messageElement.textContent = `Error: No se pudo eliminar el nodo ${value}.`;
+                }
+                inputElement.value = '';
+                selectedNode = null;
+                drawTree();
+                updateInfo();
+                updateDynamicInfo(null);
+            } catch (e) {
+                messageElement.textContent = `Error al eliminar: ${e.message}`;
+            }
+        }
+
+        function resetTree() {
+            tree = new BinarySearchTree();
+            nodeCount = 0; 
+            document.getElementById('message').textContent = "Árbol reiniciado.";
+            selectedNode = null;
+            drawTree();
+            updateInfo();
+            updateDynamicInfo(null);
+        }
+
+        // 5. Actualizacion de la Terminologia (General)
+        function updateInfo() {
+            const rootInfo = document.getElementById('root-info');
+            const leavesInfo = document.getElementById('leaves-info');
+            const allParentsInfo = document.getElementById('all-parents'); 
+            const treeHeight = document.getElementById('tree-height');
+            const inorderInfo = document.getElementById('inorder-info');
+            const preorderInfo = document.getElementById('preorder-info');
+            const postorderInfo = document.getElementById('postorden-info');
+
+            if (tree.root === null) {
+                rootInfo.textContent = "N/A";
+                leavesInfo.textContent = "N/A";
+                allParentsInfo.textContent = "N/A";
+                treeHeight.textContent = "0";
+                inorderInfo.textContent = "Árbol vacío.";
+                preorderInfo.textContent = "Árbol vacío.";
+                postorderInfo.textContent = "Árbol vacío.";
+                return;
+            }
+
+            rootInfo.textContent = tree.root.data;
+            treeHeight.textContent = tree.getHeight(tree.root);
+
+            const leaves = [];
+            function findLeaves(node) {
+                if (node) {
+                    if (node.left === null && node.right === null) {
+                        leaves.push(node.data);
+                    }
+                    findLeaves(node.left);
+                    findLeaves(node.right);
+                }
+            }
+            findLeaves(tree.root);
+            leavesInfo.textContent = leaves.join(', ');
+
+            const parents = tree.findAllParents(tree.root);
+            allParentsInfo.textContent = parents.join(', ');
+
+            inorderInfo.textContent = tree.inorder(tree.root).join(', ');
+            preorderInfo.textContent = tree.preorder(tree.root).join(', ');
+            postorderInfo.textContent = tree.postorder(tree.root).join(', ');
+        }
+
+        // 6. Inicializacion
+        window.onload = function() {
+            // Nodos de ejemplo
+            [50, 25, 75, 12, 38, 63, 88, 6, 18, 30, 44, 55, 69, 81, 95].forEach(val => tree.insert(val));
+            document.getElementById('message').textContent = `Árbol inicial pre-cargado. (Total: ${nodeCount} nodos)`;
+            drawTree();
+            updateInfo();
+            updateDynamicInfo(null);
+        };
+    </script>
+</body>
+ <footer>
+    <p>&copy; 2025 Objeto Multimedia Interactivo. Estructuras de Datos. Todos los derechos reservados.</p>
+    <p>por: Julian Jimenez Villaseñor DSM-42</p>
+  </footer>
+</html>
